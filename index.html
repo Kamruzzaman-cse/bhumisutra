@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BhumiSutra — ভূমিসূত্র</title>
+  <meta name="description" content="BhumiSutra: tamper-proof land deed verification, double-sale detection and khatian matching for Bangladesh. LandTech 2026 prototype by team TerraCoder.">
+  <meta name="theme-color" content="#0E5A43">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <p class="demo-strip" id="demo-strip">সব তথ্য কাল্পনিক — শুধু প্রদর্শনের জন্য</p>
+  <header class="topbar">
+    <button class="menu-btn" id="menu-btn" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="brand" href="#/home">
+      <span id="brand-mark"></span>
+      <span class="brand-text"><strong id="brand-name">ভূমিসূত্র</strong><small id="brand-tag"></small></span>
+    </a>
+    <a class="integrity" id="integrity" href="#/ledger"><span class="dot"></span></a>
+    <button class="lang-btn" id="lang-btn" type="button">English</button>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" id="nav" aria-label="Main"></nav>
+    <main id="view" tabindex="-1"><p class="loading">…</p></main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="assets/vendor/qrcode.js"></script>
+  <script src="assets/js/crypto.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/ledger.js"></script>
+  <script src="assets/js/engine.js"></script>
+  <script src="assets/js/views.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
