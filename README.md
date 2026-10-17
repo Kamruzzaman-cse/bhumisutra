@@ -21,7 +21,7 @@ The existing government systems keep running. BhumiSutra sits beside them as a v
 | **Linked problems** | P1 (digitize old records with Bangla OCR), P2 (verify deeds by signed QR), P4 (registration files e-Mutation automatically), P5 (check before you buy) |
 | **Our innovation (P6)** | **ভূমিসূত্র সুরক্ষা (BhumiSutra Shield):** owner consent, 72-hour public notice, escrow, land lock, heir protection, plot QR signboard |
 | **Team** | TerraCoder (LA-146) |
-| **Live demo** | _add the Vercel link here_ |
+| **Live demo** | [bhumisutra.vercel.app](https://bhumisutra.vercel.app/) |
 | **Demo video** | _add the video link here_ |
 
 > ⚠️ **All data is fictional.** Every person, NID, phone number, plot, deed, khatian, court case and bank is made up. Demo NIDs are 10 digits starting with `000`, mobiles start with `010`, emails end in `@example.com`. Sample "scans" are drawn by a script (`tools/make_sample_scans.py`). No real names, NID numbers or land records are used, and no government website was scraped or contacted. The NID card design is not copied.
