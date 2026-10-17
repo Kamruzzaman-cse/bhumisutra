@@ -2,9 +2,8 @@
  * views3.js — protection features (problem P6, our own idea) and the
  * professional login:
  *   - Login: officer form + citizen NID / date of birth / one-time code
- *   - Safe sale: NID check → automatic checks → owner consent (SMS, email,
- *     authenticator app for owners abroad, or a nominee) → 72-hour public
- *     notice with objections → registration + escrow
+ *   - Safe sale: NID check → automatic checks → owner consent (SMS or email)
+ *     → 72-hour public notice with objections → registration + escrow
  *   - Land lock, heir protection (faraiz), plot QR signboard, signed QR scan
  * Loaded after views.js / views2.js; screens defined here replace older ones.
  */
@@ -126,7 +125,7 @@
         e.preventDefault();
         const id = A.findCitizen(cf.nid.value, cf.dob.value);
         if (!id) { document.getElementById('login-err').textContent = t('login.nidWrong'); return; }
-        citizenStep = startChallenge(id, false);
+        citizenStep = startChallenge(id);
         BS.app.render();
       });
       const otpf = document.getElementById('otp-form');
@@ -142,29 +141,26 @@
     }
   };
 
-  /* ---------- one-time code challenge (SMS / email / authenticator) ---------- */
+  /* ---------- one-time code challenge (SMS / email) ---------- */
 
-  // person = whose device receives the code; viaNominee = send to the nominee.
-  function startChallenge(person, viaNominee) {
+  // person = whose device receives the code.
+  function startChallenge(person) {
     const pr = E.prefs(person, ctx().state);
-    const target = viaNominee && pr.nominee ? pr.nominee : person;
-    const tp = E.prefs(target, ctx().state);
-    const channel = viaNominee ? 'sms' : tp.consent;
-    return { person: person, target: target, viaNominee: !!viaNominee, channel: channel, code: channel === 'app' && tp.totp ? null : S.otp(), secret: channel === 'app' ? tp.totp : '' };
+    const channel = pr.consent;
+    return { person: person, target: person, channel: channel, code: S.otp() };
   }
   async function checkChallenge(ch, code) {
-    if (ch.channel === 'app' && ch.secret) return S.checkTotp(ch.secret, code);
     return code === ch.code;
   }
 
   // The "phone" that shows the code in the demo.
   function demoDevice(ch, inputId) {
     const p = D.persons[ch.target];
-    const where = ch.channel === 'sms' ? t('dev.sms', { to: maskMobile(p.mobile) }) : ch.channel === 'email' ? t('dev.email', { to: p.email || '' }) : t('dev.app');
+    const where = ch.channel === 'sms' ? t('dev.sms', { to: maskMobile(p.mobile) }) : t('dev.email', { to: p.email || '' });
     return '<div class="device" data-device>' +
       '<p class="device-label">' + esc(t('dev.label', { name: U.L(p) })) + '</p>' +
       '<p class="device-where">' + esc(where) + '</p>' +
-      '<p class="device-code"><span data-code>' + (ch.code || '······') + '</span>' + (ch.channel === 'app' ? ' <small data-secs></small>' : '') + '</p>' +
+      '<p class="device-code"><span data-code>' + (ch.code || '······') + '</span></p>' +
       '<button type="button" class="btn small" data-usecode="' + inputId + '">' + esc(t('dev.use')) + '</button></div>';
   }
   let deviceTimer = null;
@@ -172,14 +168,6 @@
     clearInterval(deviceTimer);
     const box = document.querySelector('[data-device]');
     if (!box || !ch) return;
-    const tick = async function () {
-      if (!document.body.contains(box)) { clearInterval(deviceTimer); return; }
-      if (ch.channel === 'app' && ch.secret) {
-        box.querySelector('[data-code]').textContent = await S.totp(ch.secret);
-        box.querySelector('[data-secs]').textContent = t('dev.secs', { n: U.num(S.secondsLeft()) });
-      }
-    };
-    tick(); deviceTimer = setInterval(tick, 1000);
     const use = box.querySelector('[data-usecode]');
     use.addEventListener('click', function () {
       const input = document.getElementById(use.dataset.usecode);
@@ -324,14 +312,12 @@
       '<p>' + esc(t('consent.lede', { name: U.L(sp) })) + (pr.abroad ? ' <span class="badge warn">' + esc(t('consent.abroad', { country: U.L(pr.abroad) })) + '</span>' : '') + '</p>' +
       '<p class="hint">' + esc(t('consent.channel', { ch: t('ch.' + pr.consent) })) + '</p>';
     if (sale.step === 'checked') {
-      html += '<div class="actions"><button class="btn primary" type="button" data-consent="owner">' + esc(t('consent.ask')) + '</button>' +
-        (pr.nominee ? '<button class="btn" type="button" data-consent="nominee">' + esc(t('consent.askNominee', { name: pName(pr.nominee) })) + '</button>' : '') + '</div>';
+      html += '<div class="actions"><button class="btn primary" type="button" data-consent="owner">' + esc(t('consent.ask')) + '</button></div>';
     } else if (sale.step === 'consent') {
-      html += (sale.ch.viaNominee ? '<p class="match bad">' + esc(t('consent.nomineeNote', { owner: U.L(sp) })) + '</p>' : '') +
-        demoDevice(sale.ch, 'consent-code') +
+      html += demoDevice(sale.ch, 'consent-code') +
         '<form id="consent-form" class="inline"><input id="consent-code" inputmode="numeric" maxlength="6" placeholder="••••••" aria-label="' + esc(t('login.code')) + '"><button class="btn primary" type="submit">' + esc(t('consent.verify')) + '</button></form><p id="consent-err" class="err" role="alert"></p>';
     } else if (sale.step === 'consented') {
-      html += '<p class="match ok">' + esc(t('consent.ok', { via: sale.ch.viaNominee ? t('consent.byNominee', { name: pName(sale.ch.target) }) : t('ch.' + sale.ch.channel) })) + '</p>' +
+      html += '<p class="match ok">' + esc(t('consent.ok', { via: t('ch.' + sale.ch.channel) })) + '</p>' +
         '<p>' + esc(t('notice.explain')) + '</p>' +
         '<button class="btn primary" type="button" id="to-notice">' + esc(t('notice.publish')) + '</button>';
     }
@@ -341,7 +327,7 @@
   function mountResult() {
     document.querySelectorAll('[data-consent]').forEach(function (b) {
       b.addEventListener('click', function () {
-        sale.ch = startChallenge(sale.input.seller, b.dataset.consent === 'nominee');
+        sale.ch = startChallenge(sale.input.seller);
         sale.step = 'consent';
         A.audit('consent.request', pName(sale.input.seller));
         BS.app.render();
@@ -362,7 +348,7 @@
       const id = BS.store.nextNo('notice', 'NT');
       const now = Date.now();
       const notified = whoToNotify(s);
-      const n = { id: id, input: s, created: new Date(now).toISOString(), ends: new Date(now + HOURS72).toISOString(), status: 'notice', objections: [], consentVia: sale.ch.viaNominee ? 'nominee' : sale.ch.channel, notified: notified };
+      const n = { id: id, input: s, created: new Date(now).toISOString(), ends: new Date(now + HOURS72).toISOString(), status: 'notice', objections: [], consentVia: sale.ch.channel, notified: notified };
       st.pendingSales = st.pendingSales || [];
       st.pendingSales.unshift(n);
       await BS.store.append('NOTICE_PUBLISHED', { id: id, dag: s.dag, seller: s.seller, buyer: s.buyer, area: s.area, ends: n.ends, sellerNid: await S.nidHash(nidOf(s.seller)), consent: n.consentVia });
@@ -373,14 +359,12 @@
     });
   }
 
-  // Who gets told about a sale: co-owners, heirs, banks holding a mortgage, the nominee.
+  // Who gets told about a sale: co-owners, heirs, banks holding a mortgage.
   function whoToNotify(s) {
     const d = ctx().derived[s.dag];
     const people = {};
     Object.keys(d.deedOwners).forEach(function (id) { if (id !== s.seller) people[id] = 'coOwner'; });
     d.successions.forEach(function (b) { Object.keys(b.payload.heirs).forEach(function (id) { if (id !== s.seller) people[id] = 'heir'; }); });
-    const pr = E.prefs(s.seller, ctx().state);
-    if (pr.nominee) people[pr.nominee] = 'nominee';
     people[s.seller] = 'seller';
     const banks = d.mortgages.filter(function (m) { return m.active; }).map(function (m) { return m.block.payload.bank; });
     return { people: people, banks: banks };
@@ -499,11 +483,7 @@
           '<div class="prot-row"><div><strong>' + esc(t('prot.lock')) + '</strong><p class="hint">' + esc(t('prot.lockD')) + '</p></div>' +
             '<span class="badge ' + (pr.lock ? 'ok' : 'warn') + '">' + esc(pr.lock ? t('prot.on') : t('prot.off')) + '</span></div>' +
           '<div class="prot-row"><div><strong>' + esc(t('prot.channel')) + '</strong><p class="hint">' + esc(t('prot.channelD')) + '</p></div>' +
-            '<select id="prot-channel" aria-label="' + esc(t('prot.channel')) + '">' + ['sms', 'email', 'app'].map(function (c) { return '<option value="' + c + '"' + (pr.consent === c ? ' selected' : '') + (c === 'app' && !p.totp ? ' disabled' : '') + '>' + esc(t('ch.' + c)) + '</option>'; }).join('') + '</select></div>' +
-          '<div class="prot-row"><div><strong>' + esc(t('prot.nominee')) + '</strong><p class="hint">' + esc(t('prot.nomineeD')) + '</p></div>' +
-            '<select id="prot-nominee" aria-label="' + esc(t('prot.nominee')) + '"><option value="">' + esc(t('prot.noNominee')) + '</option>' + Object.keys(D.persons).filter(function (id) { return id !== me && id !== 'GOV' && !D.persons[id].died; }).map(function (id) { return '<option value="' + id + '"' + (pr.nominee === id ? ' selected' : '') + '>' + esc(pName(id)) + '</option>'; }).join('') + '</select></div>' +
-          (p.totp ? '<div class="prot-row"><div><strong>' + esc(t('prot.app')) + '</strong><p class="hint">' + esc(t('prot.appD')) + '</p></div>' +
-            '<figure class="otp-qr">' + U.qr('otpauth://totp/BhumiSutra:' + p.nid + '?secret=' + p.totp + '&issuer=BhumiSutra', 3) + '</figure></div>' : '') +
+            '<select id="prot-channel" aria-label="' + esc(t('prot.channel')) + '">' + ['sms', 'email'].map(function (c) { return '<option value="' + c + '"' + (pr.consent === c ? ' selected' : '') + '>' + esc(t('ch.' + c)) + '</option>'; }).join('') + '</select></div>' +
           (lockStep ? '<div class="prot-verify"><p>' + esc(t('prot.verify')) + '</p>' + demoDevice(lockStep, 'prot-code') +
             '<form id="prot-form" class="inline"><input id="prot-code" inputmode="numeric" maxlength="6" aria-label="' + esc(t('login.code')) + '"><button class="btn primary" type="submit">' + esc(t('consent.verify')) + '</button></form><p id="prot-err" class="err" role="alert"></p></div>'
             : '<div class="actions"><button class="btn ' + (pr.lock ? '' : 'primary') + '" type="button" id="lock-btn">' + esc(pr.lock ? t('prot.unlock') : t('prot.doLock')) + '</button>' +
@@ -525,9 +505,9 @@
       const sp = document.getElementById('save-prefs');
       const pending = { action: null };
       const begin = function (action) {
-        pending.action = action; lockStep = startChallenge(me, false); lockStep.action = action; BS.app.render();
+        pending.action = action; lockStep = startChallenge(me); lockStep.action = action; BS.app.render();
       };
-      if (sp) sp.addEventListener('click', function () { begin({ consent: document.getElementById('prot-channel').value, nominee: document.getElementById('prot-nominee').value }); });
+      if (sp) sp.addEventListener('click', function () { begin({ consent: document.getElementById('prot-channel').value }); });
       const lb = document.getElementById('lock-btn');
       if (lb) lb.addEventListener('click', function () { begin({ lock: !E.prefs(me, st).lock }); });
       if (lockStep) {

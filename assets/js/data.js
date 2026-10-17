@@ -31,7 +31,7 @@ BS.DATA = {
     P01: { bn: 'আব্দুল করিম', en: 'Abdul Karim', f: { bn: 'মোসলেম উদ্দিন', en: 'Moslem Uddin' }, nid: '0001000001', dob: '1951-03-12', mobile: '01000000001', consent: 'sms' },
     P02: { bn: 'রহিমা বেগম', en: 'Rahima Begum', f: { bn: 'আব্দুল করিম', en: 'Abdul Karim' }, rel: 'husband', nid: '0001000002', dob: '1958-07-01', mobile: '01000000002', consent: 'sms' },
     P03: { bn: 'জামাল হোসেন', en: 'Jamal Hossain', f: { bn: 'ইসমাইল হোসেন', en: 'Ismail Hossain' }, nid: '0001000003', dob: '1969-11-20', mobile: '01000000003', consent: 'sms' },
-    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', f: { bn: 'আব্দুল হামিদ', en: 'Abdul Hamid' }, nid: '0001000004', dob: '1985-02-14', mobile: '01000000004', email: 'selina@example.com', abroad: { bn: 'ইতালি', en: 'Italy' }, consent: 'app', totp: 'JBSWY3DPEHPK3PXPJBSWY3DP', nominee: 'P02' },
+    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', f: { bn: 'আব্দুল হামিদ', en: 'Abdul Hamid' }, nid: '0001000004', dob: '1985-02-14', mobile: '01000000004', email: 'selina@example.com', abroad: { bn: 'ইতালি', en: 'Italy' }, consent: 'email' },
     P05: { bn: 'মনির উদ্দিন', en: 'Monir Uddin', f: { bn: 'কাশেম উদ্দিন', en: 'Kashem Uddin' }, nid: '0001000005', dob: '1979-09-09', mobile: '01000000005', email: 'monir@example.com', abroad: { bn: 'সৌদি আরব', en: 'Saudi Arabia' }, consent: 'email', lock: true },
     P06: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam', f: { bn: 'নুরুল ইসলাম', en: 'Nurul Islam' }, nid: '0001000006', dob: '1990-05-23', mobile: '01000000006', email: 'farhana@example.com', consent: 'sms' },
     P07: { bn: 'রফিক মিয়া', en: 'Rafiq Mia', f: { bn: 'আলতাফ মিয়া', en: 'Altaf Mia' }, nid: '0001000007', dob: '1948-01-05', died: '2024-02-10' },
@@ -41,7 +41,7 @@ BS.DATA = {
     P11: { bn: 'কামাল সরকার', en: 'Kamal Sarkar', f: { bn: 'জালাল সরকার', en: 'Jalal Sarkar' }, nid: '0001000011', dob: '1975-06-15', mobile: '01000000011', consent: 'sms' },
     P12: { bn: 'আমেনা বেগম', en: 'Amena Begum', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, rel: 'husband', nid: '0001000012', dob: '1955-10-10', mobile: '01000000012', consent: 'sms' },
     P13: { bn: 'রাসেল মিয়া', en: 'Rasel Mia', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000013', dob: '1980-03-03', mobile: '01000000013', consent: 'sms' },
-    P14: { bn: 'সোহেল মিয়া', en: 'Sohel Mia', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000014', dob: '1983-07-21', mobile: '01000000014', email: 'sohel@example.com', abroad: { bn: 'মালয়েশিয়া', en: 'Malaysia' }, consent: 'app', totp: 'KRSXG5DSNFXGOIDCMFXGOYLMMFSGK3TB' },
+    P14: { bn: 'সোহেল মিয়া', en: 'Sohel Mia', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000014', dob: '1983-07-21', mobile: '01000000014', email: 'sohel@example.com', abroad: { bn: 'মালয়েশিয়া', en: 'Malaysia' }, consent: 'email' },
     P15: { bn: 'রুমানা আক্তার', en: 'Rumana Akter', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000015', dob: '1987-12-12', mobile: '01000000015', consent: 'sms' },
     GOV: { bn: 'বাংলাদেশ সরকার (খাস)', en: 'Government of Bangladesh (khas)' }
   },
