@@ -80,6 +80,10 @@ BS.views = (function () {
       vars.bank = U.bank(d.bank); vars.ref = d.ref; vars.amount = U.money(d.amount);
     }
     if (c.key === 'case' && d.no) vars.ref = U.L(d.no);
+    if (d.nid) vars.nid = d.nid;
+    if (d.died) vars.died = U.date(d.died);
+    if (d.heirs) vars.heirs = U.num(d.heirs);
+    if (d.id) vars.id = d.id;
     return t('chk.' + c.key + '.' + c.status, vars);
   }
 
@@ -99,6 +103,11 @@ BS.views = (function () {
       case 'MUTATION_APPROVED': return t('blk.mutation', { no: p.caseNo, dag: U.num(p.dag), to: U.person(p.to), area: U.area(p.area) });
       case 'MORTGAGE_CREATED': return t('blk.mortgage', { ref: p.ref, dag: U.num(p.dag), bank: U.bank(p.bank), amount: U.money(p.amount) });
       case 'MORTGAGE_RELEASED': return t('blk.release', { ref: p.ref, dag: U.num(p.dag) });
+      case 'NOTICE_PUBLISHED': return t('blk.notice', { id: p.id, dag: U.num(p.dag), from: U.person(p.seller), to: U.person(p.buyer), area: U.area(p.area) });
+      case 'ESCROW_HELD': return t('blk.escrowHeld', { no: p.deedNo, bank: U.bank(p.bank) });
+      case 'ESCROW_RELEASED': return t('blk.escrowReleased', { no: p.deedNo });
+      case 'SUCCESSION_RECORDED': return t('blk.succession', { ref: p.ref, dag: U.num(p.dag), name: U.person(p.deceased), n: U.num(Object.keys(p.heirs).length) });
+      case 'LAND_LOCK': return t(p.lock ? 'blk.lockOn' : 'blk.lockOff');
       case 'LD_TAX_PAID': return t('blk.tax', { no: p.receiptNo, holding: U.num(p.holding), amount: U.money(p.amount) });
       case 'DIGITIZED_RECORD': return t('blk.digitized', { id: p.id, kind: t('dg.kind.' + p.kind), ref: p.ref, mouza: p.mouza });
       default: return b.type;
@@ -109,7 +118,7 @@ BS.views = (function () {
     const d = a.detail || {};
     return t('alert.' + a.type, {
       dag: U.num(a.dag), seller: U.person(d.seller), buyer: U.person(d.buyer), owner: U.person(d.owner),
-      area: U.area(d.area || 0), deed: d.priorDeed || '', bank: d.bank ? U.bank(d.bank) : '', ref: d.ref || ''
+      area: U.area(d.area || 0), deed: d.priorDeed || '', bank: d.bank ? U.bank(d.bank) : '', ref: d.ref || '', nid: d.nid || ''
     });
   }
 
@@ -257,6 +266,11 @@ BS.views = (function () {
         });
       });
       if (q.dag && E.plot(q.dag) && ['subreg', 'acland', 'bank', 'admin', 'survey'].indexOf(BS.auth.role()) !== -1) BS.auth.audit('view.report', 'dag ' + q.dag);
+      const rv = document.querySelector('[data-reveal]');
+      if (rv) rv.addEventListener('click', function () {
+        document.querySelectorAll('[data-nid]').forEach(function (c) { c.textContent = (D.persons[c.dataset.nid] || {}).nid || ''; });
+        BS.auth.audit('nid.reveal', 'dag ' + q.dag); rv.remove();
+      });
     }
   };
 
@@ -379,7 +393,14 @@ BS.views = (function () {
     }).join('') + '</div>' + p.khatians.map(function (k) {
       return '<div data-kh-panel="' + k.survey + '"' + (k.survey === latest ? '' : ' hidden') + '>' + BS.parts.khatianDoc(BS.parts.plotKhatian(p, k), { compact: true }) + '</div>';
     }).join('');
-    const ids = seeId ? '<dt>' + esc(t('check.ids')) + '</dt><dd>' + Object.keys(s.deedOwners).map(function (id) { return esc(U.person(id)) + ': <code>' + esc((D.persons[id] || {}).id || id) + '</code>'; }).join(', ') + '</dd>' : '';
+    const ids = seeId ? '<dt>' + esc(t('check.ids')) + '</dt><dd>' + Object.keys(s.deedOwners).map(function (id) { return esc(U.person(id)) + ': <code data-nid="' + id + '">' + esc(BS.sec.maskNid((D.persons[id] || {}).nid)) + '</code>'; }).join(', ') +
+      ' <button type="button" class="linkish" data-reveal>' + esc(t('nid.reveal')) + '</button></dd>' : '';
+    const succ = s.successions.length ? (function () {
+      const b = s.successions[0].payload;
+      return '<div class="panel heirs-panel"><h3>' + esc(t('heir.panel')) + '</h3><p>' + esc(t('heir.recordedD', { name: U.person(b.deceased), date: U.date(b.died), ref: b.ref })) + '</p><ul class="who">' +
+        Object.keys(b.heirs).map(function (h) { return '<li><strong>' + esc(U.person(h)) + '</strong><span>' + esc(t('heir.shareOf', { area: U.area(b.heirs[h]) })) + '</span></li>'; }).join('') +
+        '</ul><p class="hint">' + esc(t('heir.rule')) + '</p><a href="#/heirs?dag=' + dag + '">' + esc(t('heir.see')) + '</a></div>';
+    })() : '';
 
     return '' +
       '<section class="report">' +
@@ -410,7 +431,9 @@ BS.views = (function () {
           '<div class="panel"><h3>' + esc(t('check.khatians')) + '</h3>' + khTabs + '</div>' +
           '<div class="panel"><h3>' + esc(t('flow.title', { dag: U.num(dag) })) + '</h3>' + BS.parts.plotFlow(p, s) + '</div>' +
         '</div>' +
+        succ +
         '<div class="panel"><h3>' + esc(t('check.history')) + '</h3>' + timeline + '</div>' +
+        '<div class="actions"><a class="btn" href="#/sign?dag=' + dag + '">' + esc(t('sign.link')) + '</a><a class="btn" href="#/heirs' + (s.successions.length ? '?dag=' + dag : '') + '">' + esc(t('nav.heirs')) + '</a></div>' +
         '<p class="note">' + esc(t('check.note')) + '</p>' +
       '</section>';
   }
@@ -724,6 +747,8 @@ BS.views = (function () {
           await BS.store.append('MUTATION_APPROVED', { caseNo: app.caseNo, deedNo: app.deedNo, dag: app.dag, from: app.from, to: app.to, area: app.area, date: new Date().toISOString().slice(0, 10), office: 'acland' });
           app.status = 'approved'; BS.store.saveQueue();
           BS.auth.audit('mutation.approve', app.caseNo);
+          const es = ctx().derived[app.dag] && ctx().derived[app.dag].escrows[app.deedNo];
+          if (es && es.status === 'held') await BS.store.append('ESCROW_RELEASED', { deedNo: app.deedNo, dag: app.dag, amount: es.held.payload.amount, to: es.held.payload.seller, date: new Date().toISOString().slice(0, 10) });
           U.toast(t('mut.approved', { no: app.caseNo }), 'ok');
           await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
         });
@@ -966,5 +991,6 @@ BS.views = (function () {
   };
 
   return { _icon: function (k) { return ICON[k] || ICON.warn; }, _alertText: alertText, _hidden: hidden,
+    _h: { checkList: checkList, resultCard: resultCard, field: field, readForm: readForm, plotOptions: plotOptions, checkText: checkText, deedFacts: deedFacts, findDeed: findDeed, afterDeed: afterDeed },
     home: home, check: check, verify: verify, deed: deed, register: register, mutation: mutation, bank: bank, khatian: khatian, ledger: ledger, about: about };
 })();

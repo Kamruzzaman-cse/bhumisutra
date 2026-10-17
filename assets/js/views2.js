@@ -218,7 +218,7 @@ BS.parts = (function () {
     render: function () {
       const u = A.user(), c = ctx(), me = u.person;
       const mine = D.plots.filter(function (p) { return c.derived[p.dag].deedOwners[me] || c.derived[p.dag].recordOwners[me]; });
-      const myAlerts = c.state.alerts.filter(function (a) { return mine.some(function (p) { return p.dag === a.dag; }); });
+      const myAlerts = c.state.alerts.filter(function (a) { return mine.some(function (p) { return p.dag === a.dag; }) && !((a.type === 'LOCKED_SALE' || a.type === 'HEIR_OVERSALE') && a.detail && a.detail.seller === me) && !(a.type === 'LOCKED_SALE' && a.detail && a.detail.seller !== me); });
       const myDeeds = c.state.chain.filter(function (b) { return b.type === 'DEED_REGISTERED' && (b.payload.buyer === me || b.payload.seller === me); });
       const holdings = D.holdings.filter(function (h) { return h.owner === me; });
       return head(t('role.citizen'), t('my.title', { name: U.L(u.name) }), t('my.lede')) +
@@ -650,12 +650,23 @@ BS.parts = (function () {
           }).join('') + '</ul>' : '<p class="empty">' + esc(t('home.noAlerts')) + '</p>') +
         '</section><section class="panel"><h2>' + esc(t('dash.recentAudit')) + '</h2>' + auditTable((st.audit || []).slice(0, 8)) +
           '<a href="#/audit">' + esc(t('dash.allAudit')) + '</a></section></div>' +
+        watchlist() +
         '<section class="panel"><h2>' + esc(t('dash.links')) + '</h2><div class="tiles">' +
-          [['register', 'stamp'], ['mutation', 'doc'], ['taxdesk', 'coin'], ['bank', 'bank'], ['digitize', 'scan'], ['khatian', 'doc'], ['ledger', 'shield'], ['access', 'user']].map(function (x) {
+          [['register', 'stamp'], ['notices', 'doc'], ['mutation', 'doc'], ['taxdesk', 'coin'], ['bank', 'bank'], ['digitize', 'scan'], ['khatian', 'doc'], ['ledger', 'shield'], ['access', 'user']].map(function (x) {
             return '<a class="tile" href="#/' + x[0] + '"><span class="tile-icon">' + P.ICONS[x[1]] + '</span><span>' + esc(t('nav.' + x[0])) + '</span></a>';
           }).join('') + '</div></section>';
     }
   };
+
+  function watchlist() {
+    const count = {};
+    ctx().state.alerts.forEach(function (a) { const id = a.detail && a.detail.seller; if (id) count[id] = (count[id] || 0) + 1; });
+    const ids = Object.keys(count).sort(function (a, b) { return count[b] - count[a]; });
+    return '<section class="panel"><h2>' + esc(t('watch.title')) + '</h2><p class="hint">' + esc(t('watch.lede')) + '</p>' +
+      (ids.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>' + esc(t('watch.person')) + '</th><th>NID</th><th class="num">' + esc(t('watch.count')) + '</th></tr></thead><tbody>' +
+        ids.map(function (id) { return '<tr><td>' + esc(U.person(id)) + '</td><td><code>' + esc(BS.sec.maskNid((D.persons[id] || {}).nid)) + '</code></td><td class="num">' + U.num(count[id]) + '</td></tr>'; }).join('') + '</tbody></table></div>'
+        : '<p class="empty">' + esc(t('home.noAlerts')) + '</p>') + '</section>';
+  }
 
   function auditTable(rows) {
     if (!rows.length) return '<p class="empty">' + esc(t('audit.none')) + '</p>';

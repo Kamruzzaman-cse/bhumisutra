@@ -13,7 +13,7 @@ BS.app = (function () {
 
   // [route, label key]; screens a role cannot open are hidden from its menu.
   const NAV = [
-    { group: 'nav.gCitizen', items: [['home', 'nav.home'], ['check', 'nav.check'], ['verify', 'nav.verify'], ['myland', 'nav.myland']] },
+    { group: 'nav.gCitizen', items: [['home', 'nav.home'], ['check', 'nav.check'], ['verify', 'nav.verify'], ['notices', 'nav.notices'], ['heirs', 'nav.heirs'], ['myland', 'nav.myland']] },
     { group: 'nav.gOffices', items: [['register', 'nav.register'], ['mutation', 'nav.mutation'], ['taxdesk', 'nav.taxdesk'], ['bank', 'nav.bank'], ['digitize', 'nav.digitize'], ['khatian', 'nav.khatian']] },
     { group: 'nav.gSystem', items: [['dashboard', 'nav.dashboard'], ['ledger', 'nav.ledger'], ['audit', 'nav.audit'], ['access', 'nav.access'], ['about', 'nav.about']] }
   ];
@@ -53,7 +53,7 @@ BS.app = (function () {
       });
       if (!items.length) return '';
       return '<div class="nav-group"><p>' + U.esc(U.t(g.group)) + '</p><ul>' + items.map(function (it) {
-        const active = it[0] === route || (route === 'deed' && it[0] === 'verify') || (route === 'record' && it[0] === 'digitize') || (route === 'receipt' && it[0] === 'myland');
+        const active = it[0] === route || (route === 'deed' && it[0] === 'verify') || (route === 'scan' && it[0] === 'verify') || (route === 'sign' && it[0] === 'check') || (route === 'record' && it[0] === 'digitize') || (route === 'receipt' && it[0] === 'myland');
         return '<li><a href="#/' + it[0] + '"' + (active ? ' aria-current="page"' : '') + '>' + U.esc(U.t(it[1])) + '</a></li>';
       }).join('') + '</ul></div>';
     }).join('') +
@@ -79,6 +79,8 @@ BS.app = (function () {
       : '<a class="btn small primary" href="#/login">' + U.esc(U.t('nav.login')) + '</a>';
     const lb = document.getElementById('logout-btn');
     if (lb) lb.addEventListener('click', logout);
+    document.getElementById('size-down').textContent = U.getLang() === 'bn' ? 'অ−' : 'A−';
+    document.getElementById('size-up').textContent = U.getLang() === 'bn' ? 'অ+' : 'A+';
     document.getElementById('size-down').setAttribute('aria-label', U.t('a11y.smaller'));
     document.getElementById('size-up').setAttribute('aria-label', U.t('a11y.bigger'));
     document.title = U.t('brand') + ' — ' + U.t('brand.tag');

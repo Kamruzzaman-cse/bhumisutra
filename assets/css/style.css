@@ -661,6 +661,78 @@ code { font-family: var(--font-mono); font-size: .88em; }
   .diff th, .diff td { padding: 8px 6px; font-size: .88rem; }
 }
 
+
+/* ---------- v3: professional login ---------- */
+.login-shell { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--sheet); box-shadow: var(--shadow); margin-bottom: 22px; }
+.login-brand { background: var(--green); color: #fff; padding: 36px 32px; display: flex; flex-direction: column; gap: 10px; }
+.login-brand h1 { color: #fff; margin: 6px 0 0; }
+.login-brand p { color: rgba(255, 255, 255, .85); margin: 0; }
+.login-brand ul { margin: 12px 0 0; padding-left: 1.1em; display: grid; gap: 8px; color: rgba(255, 255, 255, .92); }
+.login-mark .logo { width: 56px; height: 56px; }
+.login-mark .logo-ring { fill: #fff; }
+.login-mark .logo-plot, .login-mark .logo-line { stroke: var(--green); }
+.login-card { padding: 30px 32px; display: grid; gap: 14px; align-content: start; }
+.login-card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0; }
+.login-tabs { margin: 0; }
+.login-tabs button { font-size: .95rem; padding: 6px 18px; }
+.btn.arrow { justify-content: space-between; width: 100%; }
+.btn.pulse { animation: pulse 1.2s ease-out 2; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--green-soft); } 100% { box-shadow: 0 0 0 12px transparent; } }
+.demo-accounts h3 { margin-top: 18px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .login-brand { color: #0E1412; } :root:not([data-theme="light"]) .login-brand h1, :root:not([data-theme="light"]) .login-brand p, :root:not([data-theme="light"]) .login-brand ul { color: #0E1412; } }
+
+/* ---------- v3: demo device (shows a code) ---------- */
+.device { border: 2px solid var(--ink); border-radius: 18px; padding: 12px 16px; max-width: 300px; background: var(--paper); display: grid; gap: 4px; }
+.device-label { margin: 0; font-size: .78rem; color: var(--muted); }
+.device-where { margin: 0; font-size: .85rem; }
+.device-code { margin: 0; font-family: var(--font-mono); font-size: 1.8rem; letter-spacing: .18em; color: var(--green-ink); }
+.device-code small { font-family: var(--font); font-size: .75rem; letter-spacing: 0; color: var(--muted); }
+.nid-line { display: block; font-size: .82rem; margin-top: 2px; }
+.nid-line.ok { color: var(--green-ink); }
+.nid-line.bad { color: var(--red); font-weight: 600; }
+
+/* ---------- v3: consent, notices, protection ---------- */
+.consent { margin-top: 14px; border-color: var(--green); }
+.consent .inline { max-width: 340px; margin-top: 10px; }
+.notice header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.notice header h3 { margin: 0; }
+.notice header p { margin: 0; color: var(--muted); }
+.notice.bad { border-color: var(--red); }
+.notice.ok { border-color: var(--green); }
+.objections { margin: 8px 0; padding-left: 1.2em; color: var(--red); }
+.objections .muted { color: var(--muted); text-decoration: line-through; }
+.object-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.protection { display: grid; gap: 4px; }
+.prot-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.prot-row > div { min-width: 0; }
+.prot-row .hint { margin: 2px 0 0; }
+.prot-row select { max-width: 220px; }
+.otp-qr { margin: 0; }
+.otp-qr svg { width: 120px; height: 120px; background: #fff; border-radius: 6px; }
+.prot-verify { display: grid; gap: 10px; padding-top: 12px; }
+.prot-verify .inline { max-width: 340px; }
+.heirs-panel { border-color: var(--amber); }
+
+/* ---------- v3: plot signboard (printable) ---------- */
+.signboard { max-width: 720px; border: 6px solid var(--green); border-radius: 14px; background: var(--sheet); padding: 28px; display: grid; gap: 14px; }
+.sign-top { margin: 0; color: var(--green-ink); font-weight: 600; }
+.signboard h1 { margin: 0; font-size: clamp(1.6rem, 4vw, 2.3rem); }
+.sign-body { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 22px; align-items: center; }
+.sign-body figure { margin: 0; }
+.sign-body svg { width: 100%; height: auto; background: #fff; border-radius: 8px; }
+.sign-plot { font-family: var(--font-display); font-size: 2.2rem; margin: 0; }
+.signboard footer { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; font-weight: 600; }
+.signboard .logo { width: 34px; height: 34px; }
+@media (max-width: 760px) {
+  .login-shell { grid-template-columns: minmax(0, 1fr); }
+  .login-brand { padding: 22px; }
+  .login-brand ul { display: none; }
+  .login-card { padding: 22px 18px; }
+  .sign-body { grid-template-columns: minmax(0, 1fr); }
+  .prot-row { flex-direction: column; align-items: flex-start; }
+}
+@media print { .signboard { border-color: #0E5A43; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

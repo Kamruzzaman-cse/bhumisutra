@@ -34,9 +34,53 @@ BS.ocr = (function () {
     return workerPromise;
   }
 
+  /*
+   * Clean the picture before reading: greyscale, stretch the contrast
+   * (2nd to 98th percentile) and enlarge small photos to ~1400 px wide.
+   * Helps phone photos taken in poor light; clean scans are left as they are.
+   */
+  function preprocess(src) {
+    return new Promise(function (resolve) {
+      const img = new Image();
+      img.onload = function () {
+        // Only enlarge small images; big clean scans read best as they are.
+        const scale = img.naturalWidth < 1000 ? Math.min(2.5, 1400 / img.naturalWidth) : 1;
+        const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const g = c.getContext('2d');
+        g.imageSmoothingQuality = 'high';
+        g.drawImage(img, 0, 0, w, h);
+        const data = g.getImageData(0, 0, w, h), px = data.data;
+        const hist = new Uint32Array(256);
+        for (let i = 0; i < px.length; i += 4) {
+          const y = Math.round(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
+          px[i] = y; hist[y]++;
+        }
+        const total = w * h; let acc = 0, lo = 0, hi = 255;
+        for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= total * 0.02) { lo = v; break; } }
+        acc = 0;
+        for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= total * 0.02) { hi = v; break; } }
+        // Already high contrast and not enlarged: leave the scan untouched.
+        let dark = 0, a = 0;
+        for (let v = 0; v < 256; v++) { a += hist[v]; if (a >= total * 0.005) { dark = v; break; } }
+        if (scale === 1 && dark < 90 && hi > 200) { resolve(src); return; }
+        const span = Math.max(1, hi - lo);
+        for (let i = 0; i < px.length; i += 4) {
+          const y = Math.max(0, Math.min(255, Math.round((px[i] - lo) * 255 / span)));
+          px[i] = px[i + 1] = px[i + 2] = y;
+        }
+        g.putImageData(data, 0, 0);
+        resolve(c);
+      };
+      img.onerror = function () { resolve(src); };
+      img.src = src;
+    });
+  }
+
   async function recognize(image, onProgress) {
     const w = await getWorker(onProgress);
-    const res = await w.recognize(image, {}, { text: true, blocks: true });
+    const input = typeof image === 'string' ? await preprocess(image) : image;
+    const res = await w.recognize(input, {}, { text: true, blocks: true });
     let raw = res.data.lines || [];
     if (!raw.length && res.data.blocks) {
       res.data.blocks.forEach(function (b) {
