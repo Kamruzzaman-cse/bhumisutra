@@ -5,6 +5,8 @@
  */
 (function () {
   const bn = {
+    'about.lede': 'LandTech Innovation Hackathon ২০২৬, ট্র্যাক: ডিজিটাল ভূমি রেকর্ড, যাচাইকরণ ও ডিজিটাইজেশন। মূল সমস্যা: P3 (জালিয়াতি ও দ্বৈত বিক্রি ধরা)। সাথে যুক্ত: P1 (পুরোনো রেকর্ড ডিজিটাইজ), P2 (দলিল যাচাই), P4 (রেজিস্ট্রি থেকে স্বয়ংক্রিয় নামজারি), P5 (কেনার আগে যাচাই) এবং আমাদের নিজস্ব উদ্ভাবন P6 "ভূমিসূত্র সুরক্ষা"।',
+    'about.how': 'জমি বিক্রির আগে চার ধাপের নিরাপদ রেজিস্ট্রি: (১) বিক্রেতা ও ক্রেতার NID যাচাই, (২) সব অফিসের রেজিস্টার মিলিয়ে দ্বৈত বিক্রি, বন্ধক, খাস জমি, মামলা, বকেয়া কর ও ওয়ারিশের অংশ পরীক্ষা, (৩) মালিকের নিজের সম্মতি (SMS, ইমেইল, Authenticator অ্যাপ বা মনোনীত ব্যক্তি, তাই প্রবাসীরাও নিরাপদ), (৪) ৭২ ঘণ্টার প্রকাশ্য নোটিশ, যেখানে ওয়ারিশ বা প্রতিবেশী আপত্তি দিতে পারেন। দলিল হলে টাকা এসক্রোতে থাকে এবং নামজারি অনুমোদনের পর বিক্রেতার কাছে যায়। মালিক চাইলে জমি "লক" করে রাখতে পারেন। প্রতিটি দলিল ও করের রসিদের QR-এ অফিসের ডিজিটাল স্বাক্ষর থাকে, তাই যেকোনো ফোনে আসল-নকল বোঝা যায়। পুরোনো খতিয়ানের স্ক্যান বাংলা OCR দিয়ে আসল ফরম্যাটে ডিজিটাইজ হয়। সব ঘটনা একটি হ্যাশ-চেইন লেজারে থাকে, যা কেউ গোপনে বদলাতে পারে না।',
     'nav.notices': 'রেজিস্ট্রির নোটিশ বোর্ড',
     'nav.heirs': 'উত্তরাধিকার হিসাব',
     'reg.title': 'নিরাপদ দলিল রেজিস্ট্রি',
@@ -248,6 +250,8 @@
   };
 
   const en = {
+    'about.lede': 'LandTech Innovation Hackathon 2026, track: Digital Land Records, Verification & Digitization. Core problem: P3 (catch fraud and double-selling). Also linked: P1 (digitize old records), P2 (verify deeds), P4 (registration that files mutation automatically), P5 (check before you buy) and our own innovation P6 "BhumiSutra Shield".',
+    'about.how': 'A four-step safe registration before any sale: (1) check the NID of seller and buyer, (2) check every office register together for double sale, mortgage, government land, court cases, unpaid tax and heir shares, (3) the owner\'s own consent (SMS, email, an authenticator app or a nominee, so owners abroad are safe too), (4) a 72-hour public notice where heirs or neighbours can object. After the deed, the money waits in escrow and goes to the seller once mutation is approved. Owners can lock their land. Every deed and tax receipt QR carries the office\'s digital signature, so any phone can tell genuine from fake. Scans of old khatians are digitized into the official format with Bangla OCR. Every event sits on a hash-chained ledger that nobody can change in secret.',
     'nav.notices': 'Registration notice board',
     'nav.heirs': 'Inheritance calculator',
     'reg.title': 'Safe deed registration',
