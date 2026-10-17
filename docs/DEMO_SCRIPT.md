@@ -1,21 +1,17 @@
 # Demo video script (max 3:00)
 
-Record the screen in Chrome at 1366×768 or larger (OBS Studio, or the Xbox Game Bar with Win+Alt+R on Windows). Speak in Bangla or English. Rehearse twice, then record in one take.
+Record in Chrome at 1366×768 or larger (OBS Studio, or Xbox Game Bar with Win+Alt+R). Speak in Bangla. Rehearse twice.
 
-Before recording: open the live link, go to **Ledger → Restore demo data**, and switch to the language you will speak in.
+Before recording: open the live link, log in as `admin`, go to **Ledger → Restore demo data**, then log out. Keep the app in Bangla.
 
-| Time | Screen | Do | Say (example) |
+| Time | Screen | Do | Say (example, in Bangla on the day) |
 |---|---|---|---|
-| 0:00–0:20 | Overview | Show the map slowly | "Most land disputes in Bangladesh start with fake deeds, land sold twice, and old khatians that don't match. We are TerraCoder, and this is BhumiSutra." |
-| 0:20–0:45 | Check before you buy | Tap plot 422, then 709 | "A buyer picks a plot and gets one safety score. Plot 422 has a pending court case and a bank mortgage, so the score is 25: do not buy. Plot 709 was registered but never mutated, so check carefully." |
-| 0:45–1:15 | Sub-Registry | Click "Same land sold twice" | "Jamal already sold plot 205 to Farhana. Now he tries to sell it again to Monir. BhumiSutra blocks it and names the earlier deed and date." |
-| 1:15–1:35 | Sub-Registry → e-Mutation | Click "Valid sale" → Register → See mutation status | "A valid sale is added to the ledger as a new block, and the e-Mutation application is filed automatically, so registration and mutation stay linked." |
-| 1:35–2:10 | Certificate → Verify | Download the deed file, change the area in Notepad, upload it | "Every deed has a QR code and a SHA-256 fingerprint. I change only the area in this file, and BhumiSutra shows it is fake and exactly which field was changed." |
-| 2:10–2:25 | Bank | Click "Same land, second bank" | "The same land cannot be mortgaged to two banks." |
-| 2:25–2:50 | Ledger → Tamper Lab | Edit block #2 as a smart attacker | "Even an attacker who edits the database directly and rebuilds the hash is caught. The chain breaks at the very next block, and the whole system turns red." |
-| 2:50–3:00 | Overview | — | "Built for Sub-Registry, AC Land, banks and citizens, starting with one upazila pilot. Thank you." |
+| 0:00–0:15 | Home | Show the map and the task tiles | "Most land disputes begin with old paper records, fake deeds and land sold twice. We are TerraCoder, and this is BhumiSutra." |
+| 0:15–0:40 | Land records | Shaplapur, dag 101 → khatian tabs → ownership flow; then dag 422 | "Enter a plot or khatian number to see the khatian from CS to BS, and where the land came from and went. Plot 422 has a court case and a mortgage, so the score is 25. Private details like the loan amount stay hidden from the public." |
+| 0:40–1:25 | Login → Survey → Digitize | One-click survey login → Printed BS khatian sample → Read → fix the flagged row → save; then Typed deed → save; search Kashful dag 1022 | "Old papers are read by Bangla OCR right in the browser, even offline. Every field shows its confidence, and the system checks the arithmetic. It caught an area mismatch. The officer fixes it and saves, and the record and the original scan's fingerprint go on the ledger. The deed is checked against the khatian automatically. Now this mouza is searchable." |
+| 1:25–1:55 | Sub-Registrar | "Same land sold twice" → blocked; "Valid sale" → register | "Jamal already sold plot 205. His second attempt is blocked, with the earlier deed named. A valid sale is registered and the e-Mutation application is filed automatically." |
+| 1:55–2:15 | Citizen | Alert at top → pay tax → receipt QR | "The owner is alerted that her land was targeted. She pays land tax and gets a receipt that any phone can verify." |
+| 2:15–2:45 | Admin → Tamper Lab | Smart attacker edits block #2 → red chain → audit log | "Even someone who edits the database and rebuilds the hash is caught at the very next block. Every officer action is in the audit log." |
+| 2:45–3:00 | Who can see what | Scroll the policy table | "It works alongside the existing e-Mutation and tax systems without breaking them, and is ready for an upazila pilot. Thank you." |
 
-Tips:
-- Hide bookmarks and notifications. Zoom the browser to 110% so text is readable.
-- Keep the mouse still while talking. Move it only to click.
-- Export as MP4 at 1080p, check that it is under 3:00, and upload it unlisted to YouTube or Google Drive (with "anyone with the link" access).
+Tips: hide bookmarks and notifications, zoom to 110%, move the mouse only to click, export MP4 1080p under 3:00, and upload unlisted to YouTube or to Google Drive with "anyone with the link".
