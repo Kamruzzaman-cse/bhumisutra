@@ -42,12 +42,12 @@ Every login form has a **demo table with a "Fill in" button**, so nothing needs 
 | Bank officer | `bank` | "Same land, second bank" is blocked |
 | Admin | `admin` | Dashboard with fraud watchlist, audit log, Tamper Lab |
 
-**Citizens:** NID + date of birth, then a 6-digit one-time code. In the demo, the code appears on a simulated phone or authenticator on screen.
+**Citizens:** NID + date of birth, then a 6-digit one-time code. In the demo, the code appears on a simulated phone (SMS) or inbox (email) on screen.
 
 | Person (fictional) | NID | Date of birth | Shows |
 |---|---|---|---|
 | Kulsum Begum | `0001000006` | `1990-05-23` | Land tax due → pay → signed QR receipt |
-| Selina Akter (lives in Italy) | `0001000004` | `1985-02-14` | Consent by **authenticator app** (no Bangladeshi SIM needed); land lock; nominee |
+| Selina Akter (lives in Italy) | `0001000004` | `1985-02-14` | Consent by **email** (no Bangladeshi SIM needed); land lock |
 | Rasel Hossain (heir) | `0001000013` | `1980-03-03` | Inherited share of plot 317 and the faraiz breakdown |
 | Monir Hossain (lives in Saudi Arabia) | `0001000005` | `1979-09-09` | Land is **locked**: any sale in his name is blocked; consent by email |
 
@@ -77,7 +77,7 @@ The Sub-Registrar's **Safe registration** screen runs four steps:
 |---|---|
 | **1. NID check** | Seller and buyer NIDs are checked against the identity register. An NID that does not exist, or that belongs to a deceased person, is stopped. |
 | **2. Register check** | Every office's register is checked together: ownership by deeds, **double sale**, khas land, acquisition, court case, mortgage, khatian mismatch, unpaid **land development tax**, **heir shares** and **land lock**. Any failure blocks the sale and names the reason (for example, the earlier deed number). |
-| **3. Owner consent** | The registered owner must approve through their chosen channel: SMS, email, an **authenticator app (TOTP, RFC 6238)** that works abroad without a Bangladeshi SIM or internet, or a **nominee** in Bangladesh. |
+| **3. Owner consent** | The registered owner must approve through their chosen channel: **SMS** or **email** — both work abroad, no Bangladeshi SIM needed. |
 | **4. 72-hour public notice** | The pending sale appears on the public **notice board**. Heirs, neighbours or co-owners can file an objection. An officer reviews objections before the deed can be finalized. |
 
 After registration:
@@ -93,7 +93,7 @@ When AC Land approves the mutation, the escrow is released to the seller. Every 
 | Feature | What it does |
 |---|---|
 | **Land lock** | An owner can lock their land from **My land**. A locked plot cannot be sold or mortgaged until they unlock it with a code. The change is recorded as a `LAND_LOCK` ledger block. |
-| **Multi-channel consent** | Each owner chooses SMS, email, authenticator app or nominee. Owners abroad scan an `otpauth://` QR with Google or Microsoft Authenticator. |
+| **Multi-channel consent** | Each owner chooses SMS or email. Both reach owners abroad, with no Bangladeshi SIM or special app needed. |
 | **Heir protection (faraiz)** | Deaths and succession are recorded on the ledger. An heir can sell only up to their own share. The **heir calculator** follows Islamic inheritance rules: fixed shares, residue 2:1, awl, radd. |
 | **72-hour notice + objections** | No silent sales. Anyone can see pending sales and object. |
 | **Escrow** | The buyer's money waits until mutation is approved, so a fraudulent sale can be stopped before the seller is paid. |
@@ -161,7 +161,7 @@ Officers' actions are written to an **audit log**. Sessions end after **30 minut
 - **Ownership by replay:** the ledger is replayed to work out who owns each plot by **deeds** and who owns it by **mutation record**. A mismatch means "registered but not mutated".
 - **Double sale:** if a seller's remaining area is less than the area being sold and they sold this plot before, the sale is blocked and the earlier deed is named.
 - **Signed QR codes:** deed certificates, tax receipts and plot signboards carry a QR with the record data plus an **ECDSA P-256 signature** by the office. The `#/scan` screen checks the signature with the office public key, so it works on any phone, even one that has never opened the app. Seed data uses fixed timestamps, so every device builds identical hashes.
-- **One-time codes:** citizen login and owner consent use 6-digit codes. Authenticator codes follow RFC 6238 (HMAC-SHA1, 30 seconds) and are tested against the RFC's official test vectors.
+- **One-time codes:** citizen login and owner consent use 6-digit codes sent by SMS or email (simulated on screen in the demo).
 - **Inheritance:** a `SUCCESSION_RECORDED` block moves a deceased owner's land to the heirs in their faraiz shares. Sales by an heir are capped at their share.
 - **Data formats:** khatian records follow the official layout (areas in acres to 4 decimals, shares to 3 decimals). Deeds follow the sale-deed layout with a schedule (তফসিল). Real records can therefore be imported later without changing the data model.
 
@@ -172,7 +172,7 @@ index.html                    app shell
 assets/css/fonts.css          local fonts (offline, OFL)
 assets/css/style.css          design system: light/dark, responsive, print
 assets/js/crypto.js           canonical JSON + SHA-256
-assets/js/security.js         ECDSA office signatures, signed QR links, TOTP codes, NID masking and hashing
+assets/js/security.js         ECDSA office signatures, signed QR links, NID masking and hashing
 assets/js/data.js             FICTIONAL data: plots, khatians, people (fake NIDs), registers, tax holdings, succession
 assets/js/ledger.js           hash-chained ledger, verify(), Tamper Lab, saved state
 assets/js/auth.js             demo accounts, roles, access policy, audit log, session timeout
@@ -213,7 +213,7 @@ OCR uses a Web Worker, which browsers don't allow from `file://`, so use a local
 2. **Log in as Sub-Registrar → Safe registration.** Pick **"Fake NID"** (stopped at step 1), then **"Same land sold twice"** (blocked, with the earlier deed named), then **"Heir selling the whole plot"** and **"Locked land"**.
 3. **Valid sale, start to finish:**
    1. Pick **"Valid sale (seller abroad)"**. The seller is Selina, who lives in Italy.
-   2. She approves with the **authenticator code** shown on her simulated phone.
+   2. She approves with the **code sent to her email**.
    3. The sale goes onto the **72-hour notice board**.
    4. File an objection, then dismiss it as the officer.
    5. Click **"Demo: skip the 72 hours and register"**. The deed is registered, the price is held in **escrow**, and mutation is filed.
@@ -241,7 +241,7 @@ Only **made-up data**:
 - [Tesseract.js](https://github.com/naptha/tesseract.js) and tesseract.js-core, Apache-2.0, with Tesseract `ben` and `eng` LSTM language data (Apache-2.0).
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase, MIT.
 - Fonts under the SIL Open Font License: Hind Siliguri, Tiro Bangla, JetBrains Mono, and Noto Serif Bengali and Galada (used only for the sample scans).
-- The browser's Web Crypto API for SHA-256, ECDSA P-256 and HMAC-SHA1 (TOTP).
+- The browser's Web Crypto API for SHA-256 and ECDSA P-256.
 
 ## From prototype to nationwide system
 
