@@ -16,6 +16,18 @@ BS.engine = (function () {
   const D = BS.DATA;
   const EPS = 0.0001;
 
+  // An owner's security settings: defaults from data, changes saved in state.
+  function prefs(person, state) {
+    const base = D.persons[person] || {};
+    const saved = (state && state.prefs && state.prefs[person]) || {};
+    return { consent: saved.consent || base.consent || 'sms', lock: saved.lock !== undefined ? saved.lock : !!base.lock,
+      nominee: saved.nominee !== undefined ? saved.nominee : base.nominee || '', totp: base.totp || '', abroad: base.abroad || null };
+  }
+  function personByNid(nid) {
+    const clean = String(nid || '').replace(/[^0-9০-৯]/g, '').replace(/[০-৯]/g, function (d) { return '০১২৩৪৫৬৭৮৯'.indexOf(d); });
+    return Object.keys(D.persons).find(function (id) { return D.persons[id].nid === clean; }) || null;
+  }
+
   function plot(dag) { return D.plots.find(function (p) { return p.dag === dag; }); }
 
   function transfer(map, from, to, area) {
@@ -30,7 +42,7 @@ BS.engine = (function () {
       plots[p.dag] = {
         deedOwners: Object.assign({}, p.bsOwners),
         recordOwners: Object.assign({}, p.bsOwners),
-        deeds: [], mutations: [], mortgages: []
+        deeds: [], mutations: [], mortgages: [], successions: [], escrows: {}, notices: []
       };
     });
     chain.forEach(function (b) {
@@ -46,6 +58,20 @@ BS.engine = (function () {
         s.mortgages.push({ block: b, active: true });
       } else if (b.type === 'MORTGAGE_RELEASED') {
         s.mortgages.forEach(function (m) { if (m.block.payload.ref === b.payload.ref) { m.active = false; m.released = b; } });
+      } else if (b.type === 'SUCCESSION_RECORDED') {
+        // Inheritance: the deceased's land passes to the heirs by share.
+        const heirs = b.payload.heirs;
+        [s.deedOwners, s.recordOwners].forEach(function (map) {
+          delete map[b.payload.deceased];
+          Object.keys(heirs).forEach(function (h) { map[h] = (map[h] || 0) + Number(heirs[h]); });
+        });
+        s.successions.push(b);
+      } else if (b.type === 'ESCROW_HELD') {
+        s.escrows[b.payload.deedNo] = { held: b, status: 'held' };
+      } else if (b.type === 'ESCROW_RELEASED') {
+        if (s.escrows[b.payload.deedNo]) { s.escrows[b.payload.deedNo].status = 'released'; s.escrows[b.payload.deedNo].released = b; }
+      } else if (b.type === 'NOTICE_PUBLISHED') {
+        s.notices.push(b);
       }
     });
     return plots;
@@ -126,6 +152,7 @@ BS.engine = (function () {
     if (ki.length) f.push({ key: 'khatian', points: Math.min(25, ki.length * 10), sev: 'warn', extra: ki });
     const taxDue = holdingsForDag(dag).map(function (h) { return holdingStatus(h, state.chain); }).filter(function (x) { return x.due > 0; });
     if (taxDue.length) f.push({ key: 'taxDue', points: 5, sev: 'warn', extra: taxDue[0] });
+    if (s.successions.length) f.push({ key: 'heirs', points: 10, sev: 'warn', extra: Object.keys(s.successions[0].payload.heirs).length });
     const attempts = state.alerts.filter(function (a) { return a.dag === dag; });
     if (attempts.length) f.push({ key: 'attempts', points: 10, sev: 'warn', extra: attempts.length });
     const lost = f.reduce(function (n, x) { return n + x.points; }, 0);
@@ -148,14 +175,26 @@ BS.engine = (function () {
     add('distinctParties', input.seller && input.buyer && input.seller !== input.buyer ? 'pass' : 'fail');
     add('validArea', area > 0 ? 'pass' : 'fail');
 
+    const person = D.persons[input.seller] || {};
+    if (person.died) add('deceased', 'fail', { died: person.died });
     const held = s.deedOwners[input.seller] || 0;
+    const heirOf = s.successions.find(function (b) { return b.payload.heirs[input.seller] !== undefined; });
     if (held + EPS >= area) {
       add('ownership', 'pass', { held: held });
+    } else if (heirOf && held > EPS) {
+      // An heir trying to sell more than their inherited share.
+      add('heirShare', 'fail', { held: held, heirs: Object.keys(heirOf.payload.heirs).length, deceased: heirOf.payload.deceased });
     } else {
       // Did the seller own it before and already sell it? That is a double sale.
       const prior = s.deeds.filter(function (d) { return d.payload.seller === input.seller; }).pop();
       add(prior ? 'doubleSale' : 'ownership', 'fail', { held: held, prior: prior && prior.payload });
     }
+    const pr = prefs(input.seller, state);
+    if (pr.lock) add('locked', 'fail');
+    const busy = (state.pendingSales || []).find(function (n) { return n.input.dag === input.dag && n.status === 'notice' && n.id !== input.noticeId; });
+    if (busy) add('pendingNotice', 'fail', { id: busy.id });
+    const strikes = state.alerts.filter(function (a) { return a.detail && a.detail.seller === input.seller; }).length;
+    add('watchlist', strikes ? 'warn' : 'pass', { count: strikes });
 
     const recHeld = s.recordOwners[input.seller] || 0;
     add('mutationRecord', recHeld + EPS >= area ? 'pass' : 'warn', { held: recHeld });
@@ -226,7 +265,56 @@ BS.engine = (function () {
       .map(function (k) { return { field: k, file: fileDeed[k], ledger: ledgerDeed[k] }; });
   }
 
+  /*
+   * Simplified Muslim inheritance (faraiz) for the common family: spouse,
+   * sons, daughters, father, mother. Fixed shares first; sons and daughters
+   * share the rest 2:1; awl if fixed shares exceed the whole; radd (return
+   * of a remainder) to blood heirs. Brothers, sisters, grandchildren and
+   * other religions' laws are out of scope and are flagged.
+   * f = { deceased: 'male'|'female', husband, wives, sons, daughters, father, mother }
+   */
+  function faraiz(f) {
+    const sons = +f.sons || 0, daughters = +f.daughters || 0, wives = f.deceased === 'male' ? (+f.wives || 0) : 0;
+    const husband = f.deceased === 'female' && !!f.husband;
+    const kids = sons + daughters > 0;
+    const out = [];
+    const fixed = function (who, count, total, basis) { out.push({ who: who, count: count, total: total, basis: basis }); };
+    let spouse = 0;
+    if (husband) { spouse = kids ? 1 / 4 : 1 / 2; fixed('husband', 1, spouse, kids ? '1/4' : '1/2'); }
+    if (wives) { spouse = kids ? 1 / 8 : 1 / 4; fixed('wife', wives, spouse, kids ? '1/8' : '1/4'); }
+    if (f.mother) {
+      if (kids) fixed('mother', 1, 1 / 6, '1/6');
+      else if (f.father && spouse) fixed('mother', 1, (1 - spouse) / 3, 'umariyatain');
+      else fixed('mother', 1, 1 / 3, '1/3');
+    }
+    if (f.father && kids) fixed('father', 1, 1 / 6, '1/6');
+    if (!sons && daughters) fixed('daughter', daughters, daughters === 1 ? 1 / 2 : 2 / 3, daughters === 1 ? '1/2' : '2/3');
+    let sum = out.reduce(function (n, x) { return n + x.total; }, 0);
+    let note = '';
+    if (sum > 1 + 1e-9) { out.forEach(function (x) { x.total = x.total / sum; }); sum = 1; note = 'awl'; }
+    let rest = 1 - sum;
+    if (rest > 1e-9) {
+      if (sons) {
+        const units = sons * 2 + daughters;
+        out.push({ who: 'son', count: sons, total: rest * sons * 2 / units, basis: 'residue' });
+        if (daughters) out.push({ who: 'daughter', count: daughters, total: rest * daughters / units, basis: 'residue' });
+      } else if (f.father) {
+        const fa = out.find(function (x) { return x.who === 'father'; });
+        if (fa) { fa.total += rest; fa.basis += ' + residue'; } else out.push({ who: 'father', count: 1, total: rest, basis: 'residue' });
+      } else {
+        const blood = out.filter(function (x) { return x.who !== 'husband' && x.who !== 'wife'; });
+        const pool = blood.length ? blood : out;
+        const base = pool.reduce(function (n, x) { return n + x.total; }, 0);
+        pool.forEach(function (x) { x.total += rest * x.total / base; });
+        note = note || 'radd';
+      }
+    }
+    out.forEach(function (x) { x.each = x.total / x.count; });
+    return { rows: out.filter(function (x) { return x.count > 0; }), note: note, empty: !out.length };
+  }
+
   return {
+    faraiz: faraiz, prefs: prefs, personByNid: personByNid,
     plot: plot, derive: derive, assess: assess, checkSale: checkSale, checkMortgage: checkMortgage,
     checkMutation: checkMutation, khatianIssues: khatianIssues, pendingMutation: pendingMutation,
     sameOwners: sameOwners, currentFY: currentFY, holdingStatus: holdingStatus, holdingFor: holdingFor, holdingsForDag: holdingsForDag, caseFor: caseFor, khasFor: khasFor, acqFor: acqFor, diffDeed: diffDeed

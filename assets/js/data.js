@@ -18,20 +18,32 @@ BS.DATA = {
     district: { bn: 'ডেমো জেলা', en: 'Demo District' }
   },
 
-  // Fictional people. "DEMO-" IDs are not NID numbers. f = father/husband.
+  /*
+   * Fictional people. f = father/husband.
+   * nid: FICTIONAL 10-digit numbers starting with 000 (no real smart NID
+   * looks like this). mobile: 010… (not an operator prefix). email: example.com
+   * (a domain reserved for examples). Nothing here belongs to a real person.
+   * consent: how this owner approves a sale — 'sms', 'email', 'app'
+   * (authenticator, for owners living abroad). lock: transfers blocked
+   * until the owner unlocks. nominee: trusted person who can also approve.
+   */
   persons: {
-    P01: { bn: 'আব্দুল করিম', en: 'Abdul Karim', id: 'DEMO-ID-0001', f: { bn: 'মোসলেম উদ্দিন', en: 'Moslem Uddin' } },
-    P02: { bn: 'রহিমা বেগম', en: 'Rahima Begum', id: 'DEMO-ID-0002', f: { bn: 'আব্দুল করিম', en: 'Abdul Karim' }, rel: 'husband' },
-    P03: { bn: 'জামাল হোসেন', en: 'Jamal Hossain', id: 'DEMO-ID-0003', f: { bn: 'ইসমাইল হোসেন', en: 'Ismail Hossain' } },
-    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', id: 'DEMO-ID-0004', f: { bn: 'আব্দুল হামিদ', en: 'Abdul Hamid' } },
-    P05: { bn: 'মনির উদ্দিন', en: 'Monir Uddin', id: 'DEMO-ID-0005', f: { bn: 'কাশেম উদ্দিন', en: 'Kashem Uddin' } },
-    P06: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam', id: 'DEMO-ID-0006', f: { bn: 'নুরুল ইসলাম', en: 'Nurul Islam' } },
-    P07: { bn: 'রফিক মিয়া', en: 'Rafiq Mia', id: 'DEMO-ID-0007', f: { bn: 'আলতাফ মিয়া', en: 'Altaf Mia' } },
-    P08: { bn: 'নাসিমা খাতুন', en: 'Nasima Khatun', id: 'DEMO-ID-0008', f: { bn: 'নাসিরউদ্দিন', en: 'Nasiruddin' } },
-    P09: { bn: 'হাবিবুর রহমান', en: 'Habibur Rahman', id: 'DEMO-ID-0009', f: { bn: 'আজিজুর রহমান', en: 'Azizur Rahman' } },
-    P10: { bn: 'সুলতানা পারভীন', en: 'Sultana Parvin', id: 'DEMO-ID-0010', f: { bn: 'সুলতান আহমেদ', en: 'Sultan Ahmed' } },
-    P11: { bn: 'কামাল সরকার', en: 'Kamal Sarkar', id: 'DEMO-ID-0011', f: { bn: 'জালাল সরকার', en: 'Jalal Sarkar' } },
-    GOV: { bn: 'বাংলাদেশ সরকার (খাস)', en: 'Government of Bangladesh (khas)', id: 'GOV-KHAS' }
+    P01: { bn: 'আব্দুল করিম', en: 'Abdul Karim', f: { bn: 'মোসলেম উদ্দিন', en: 'Moslem Uddin' }, nid: '0001000001', dob: '1951-03-12', mobile: '01000000001', consent: 'sms' },
+    P02: { bn: 'রহিমা বেগম', en: 'Rahima Begum', f: { bn: 'আব্দুল করিম', en: 'Abdul Karim' }, rel: 'husband', nid: '0001000002', dob: '1958-07-01', mobile: '01000000002', consent: 'sms' },
+    P03: { bn: 'জামাল হোসেন', en: 'Jamal Hossain', f: { bn: 'ইসমাইল হোসেন', en: 'Ismail Hossain' }, nid: '0001000003', dob: '1969-11-20', mobile: '01000000003', consent: 'sms' },
+    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', f: { bn: 'আব্দুল হামিদ', en: 'Abdul Hamid' }, nid: '0001000004', dob: '1985-02-14', mobile: '01000000004', email: 'selina@example.com', abroad: { bn: 'ইতালি', en: 'Italy' }, consent: 'app', totp: 'JBSWY3DPEHPK3PXPJBSWY3DP', nominee: 'P02' },
+    P05: { bn: 'মনির উদ্দিন', en: 'Monir Uddin', f: { bn: 'কাশেম উদ্দিন', en: 'Kashem Uddin' }, nid: '0001000005', dob: '1979-09-09', mobile: '01000000005', email: 'monir@example.com', abroad: { bn: 'সৌদি আরব', en: 'Saudi Arabia' }, consent: 'email', lock: true },
+    P06: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam', f: { bn: 'নুরুল ইসলাম', en: 'Nurul Islam' }, nid: '0001000006', dob: '1990-05-23', mobile: '01000000006', email: 'farhana@example.com', consent: 'sms' },
+    P07: { bn: 'রফিক মিয়া', en: 'Rafiq Mia', f: { bn: 'আলতাফ মিয়া', en: 'Altaf Mia' }, nid: '0001000007', dob: '1948-01-05', died: '2024-02-10' },
+    P08: { bn: 'নাসিমা খাতুন', en: 'Nasima Khatun', f: { bn: 'নাসিরউদ্দিন', en: 'Nasiruddin' }, nid: '0001000008', dob: '1972-12-30', mobile: '01000000008', consent: 'sms' },
+    P09: { bn: 'হাবিবুর রহমান', en: 'Habibur Rahman', f: { bn: 'আজিজুর রহমান', en: 'Azizur Rahman' }, nid: '0001000009', dob: '1966-04-18', mobile: '01000000009', consent: 'sms' },
+    P10: { bn: 'সুলতানা পারভীন', en: 'Sultana Parvin', f: { bn: 'সুলতান আহমেদ', en: 'Sultan Ahmed' }, nid: '0001000010', dob: '1981-08-08', mobile: '01000000010', consent: 'sms' },
+    P11: { bn: 'কামাল সরকার', en: 'Kamal Sarkar', f: { bn: 'জালাল সরকার', en: 'Jalal Sarkar' }, nid: '0001000011', dob: '1975-06-15', mobile: '01000000011', consent: 'sms' },
+    P12: { bn: 'আমেনা বেগম', en: 'Amena Begum', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, rel: 'husband', nid: '0001000012', dob: '1955-10-10', mobile: '01000000012', consent: 'sms' },
+    P13: { bn: 'রাসেল মিয়া', en: 'Rasel Mia', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000013', dob: '1980-03-03', mobile: '01000000013', consent: 'sms' },
+    P14: { bn: 'সোহেল মিয়া', en: 'Sohel Mia', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000014', dob: '1983-07-21', mobile: '01000000014', email: 'sohel@example.com', abroad: { bn: 'মালয়েশিয়া', en: 'Malaysia' }, consent: 'app', totp: 'KRSXG5DSNFXGOIDCMFXGOYLMMFSGK3TB' },
+    P15: { bn: 'রুমানা আক্তার', en: 'Rumana Akter', f: { bn: 'রফিক মিয়া', en: 'Rafiq Mia' }, nid: '0001000015', dob: '1987-12-12', mobile: '01000000015', consent: 'sms' },
+    GOV: { bn: 'বাংলাদেশ সরকার (খাস)', en: 'Government of Bangladesh (khas)' }
   },
 
   // Administrative units. Shaplapur has full records; Kashful starts empty
@@ -51,6 +63,7 @@ BS.DATA = {
     { no: '1007', owner: 'P05', dags: ['101'], exempt: true },
     { no: '1002', owner: 'P06', dags: ['205'], annual: 480, paidTo: 2025 },
     { no: '1003', owner: 'P07', dags: ['317'], exempt: true },
+    { no: '1008', owner: 'P13', dags: ['317'], exempt: true },
     { no: '1004', owner: 'P08', dags: ['422'], annual: 960, paidTo: 2026 },
     { no: '1005', owner: 'P09', dags: ['618'], exempt: true },
     { no: '1006', owner: 'P10', dags: ['709'], annual: 600, paidTo: 2023 }
@@ -214,6 +227,8 @@ BS.DATA = {
       payload: { deedNo: 'D-2024-0137', dag: '205', seller: 'P03', buyer: 'P06', area: 20, price: 2400000, date: '2024-03-05', office: 'subreg', kind: 'sale' } },
     { type: 'MUTATION_APPROVED', timestamp: '2024-04-18T07:15:00.000Z',
       payload: { caseNo: 'M-2024-0098', deedNo: 'D-2024-0137', dag: '205', from: 'P03', to: 'P06', area: 20, date: '2024-04-18', office: 'acland' } },
+    { type: 'SUCCESSION_RECORDED', timestamp: '2024-06-05T05:00:00.000Z',
+      payload: { ref: 'WS-2024-0042', dag: '317', deceased: 'P07', died: '2024-02-10', heirs: { P12: 6.25, P13: 17.5, P14: 17.5, P15: 8.75 }, basis: 'faraiz', date: '2024-06-05', office: 'acland' } },
     { type: 'DEED_REGISTERED', timestamp: '2025-01-12T05:00:00.000Z',
       payload: { deedNo: 'D-2025-0019', dag: '709', seller: 'P10', buyer: 'P11', area: 25, price: 1875000, date: '2025-01-12', office: 'subreg', kind: 'sale' } },
     { type: 'MORTGAGE_CREATED', timestamp: '2025-02-10T08:20:00.000Z',

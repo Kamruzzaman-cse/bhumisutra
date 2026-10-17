@@ -18,7 +18,6 @@ BS.auth = (function () {
 
   // Demo accounts. password for all: demo1234
   const USERS = [
-    { u: 'citizen', role: 'citizen', person: 'P06', name: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam' } },
     { u: 'subreg', role: 'subreg', name: { bn: 'সাব-রেজিস্ট্রার (ডেমো)', en: 'Sub-Registrar (demo)' } },
     { u: 'acland', role: 'acland', name: { bn: 'সহকারী কমিশনার ভূমি (ডেমো)', en: 'AC Land (demo)' } },
     { u: 'survey', role: 'survey', name: { bn: 'জরিপ ও রেকর্ড কর্মকর্তা (ডেমো)', en: 'Survey & Records Officer (demo)' } },
@@ -67,7 +66,17 @@ BS.auth = (function () {
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(session)); } catch (e) { /* ignore */ } }
 
-  function user() { return session ? USERS.find(function (x) { return x.u === session.u; }) : null; }
+  // Citizens to try on the login page (fictional NIDs).
+  const DEMO_CITIZENS = ['P06', 'P04', 'P13', 'P05'];
+
+  function user() {
+    if (!session) return null;
+    if (session.person) {
+      const p = BS.DATA.persons[session.person];
+      return p ? { u: BS.sec.maskNid(p.nid), role: 'citizen', person: session.person, name: { bn: p.bn, en: p.en } } : null;
+    }
+    return USERS.find(function (x) { return x.u === session.u; }) || null;
+  }
   function role() { const u = user(); return u ? u.role : 'public'; }
 
   function login(username, password) {
@@ -78,6 +87,19 @@ BS.auth = (function () {
     audit('login', '');
     return true;
   }
+  // Citizen sign-in: NID + date of birth, then a one-time code (see views2).
+  function findCitizen(nid, dob) {
+    const id = BS.engine.personByNid(nid);
+    const p = id && BS.DATA.persons[id];
+    if (!p || p.died || id === 'GOV') return null;
+    return p.dob === String(dob).trim() ? id : null;
+  }
+  function loginPerson(id) {
+    session = { person: id, since: Date.now(), last: Date.now() };
+    save();
+    audit('login', BS.sec.maskNid(BS.DATA.persons[id].nid));
+  }
+
   function logout() {
     if (session) audit('logout', '');
     session = null;
@@ -119,7 +141,7 @@ BS.auth = (function () {
   }
 
   return {
-    USERS: USERS, DEMO_PASSWORD: DEMO_PASSWORD, ROLES: ROLES, POLICY: POLICY, SCREENS: SCREENS,
+    USERS: USERS, DEMO_PASSWORD: DEMO_PASSWORD, DEMO_CITIZENS: DEMO_CITIZENS, findCitizen: findCitizen, loginPerson: loginPerson, ROLES: ROLES, POLICY: POLICY, SCREENS: SCREENS,
     user: user, role: role, login: login, logout: logout, touch: touch,
     canOpen: canOpen, rolesFor: rolesFor, see: see, audit: audit
   };

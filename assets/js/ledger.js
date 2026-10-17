@@ -13,7 +13,7 @@
 window.BS = window.BS || {};
 
 BS.store = (function () {
-  const KEY = 'bhumisutra.state.v2';
+  const KEY = 'bhumisutra.state.v3';
   const ZERO = '0'.repeat(64);
   let state = null;
 
@@ -60,19 +60,21 @@ BS.store = (function () {
       chain.push(await makeBlock(chain, ev[i].type, ev[i].payload, ev[i].timestamp));
     }
     return {
-      version: 2,
+      version: 3,
       audit: [],
       digitized: [],
+      pendingSales: [],
+      prefs: {},
       chain: chain,
       mutationQueue: JSON.parse(JSON.stringify(BS.DATA.seedMutationQueue)),
       alerts: JSON.parse(JSON.stringify(BS.DATA.seedAlerts)),
-      counters: { deed: 200, mutation: 100, mortgage: 40, receipt: 500, digit: 0 }
+      counters: { deed: 200, mutation: 100, mortgage: 40, receipt: 500, digit: 0, notice: 0, escrow: 0 }
     };
   }
 
   async function init() {
     state = read();
-    if (!state || !Array.isArray(state.chain) || state.version !== 2) {
+    if (!state || !Array.isArray(state.chain) || state.version !== 3) {
       state = await buildSeed();
       save();
     }
