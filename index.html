@@ -4,16 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BhumiSutra — ভূমিসূত্র</title>
-  <meta name="description" content="BhumiSutra: tamper-proof land deed verification, double-sale detection and khatian matching for Bangladesh. LandTech 2026 prototype by team TerraCoder.">
+  <meta name="description" content="BhumiSutra: digitize old land papers with Bangla OCR, verify deeds by QR, stop double-selling, and see the full history of any plot. LandTech 2026 prototype by team TerraCoder.">
   <meta name="theme-color" content="#0E5A43">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/fonts.css">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <a class="skip" href="#view">Skip to content</a>
+  <a class="skip" href="#view">মূল অংশে যান / Skip to content</a>
   <p class="demo-strip" id="demo-strip">সব তথ্য কাল্পনিক — শুধু প্রদর্শনের জন্য</p>
   <header class="topbar">
     <button class="menu-btn" id="menu-btn" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
@@ -24,7 +22,12 @@
       <span class="brand-text"><strong id="brand-name">ভূমিসূত্র</strong><small id="brand-tag"></small></span>
     </a>
     <a class="integrity" id="integrity" href="#/ledger"><span class="dot"></span></a>
+    <div class="size-ctl" role="group" aria-label="Text size">
+      <button type="button" id="size-down" class="size-btn">অ−</button>
+      <button type="button" id="size-up" class="size-btn">অ+</button>
+    </div>
     <button class="lang-btn" id="lang-btn" type="button">English</button>
+    <div class="whobox" id="who"></div>
   </header>
   <div class="layout">
     <nav class="sidebar" id="nav" aria-label="Main"></nav>
@@ -33,13 +36,18 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="assets/vendor/qrcode.js"></script>
+  <script src="assets/vendor/tesseract/tesseract.min.js"></script>
   <script src="assets/js/crypto.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/i18n2.js"></script>
   <script src="assets/js/ui.js"></script>
   <script src="assets/js/ledger.js"></script>
+  <script src="assets/js/auth.js"></script>
   <script src="assets/js/engine.js"></script>
+  <script src="assets/js/ocr.js"></script>
   <script src="assets/js/views.js"></script>
+  <script src="assets/js/views2.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>

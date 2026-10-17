@@ -99,6 +99,8 @@ BS.views = (function () {
       case 'MUTATION_APPROVED': return t('blk.mutation', { no: p.caseNo, dag: U.num(p.dag), to: U.person(p.to), area: U.area(p.area) });
       case 'MORTGAGE_CREATED': return t('blk.mortgage', { ref: p.ref, dag: U.num(p.dag), bank: U.bank(p.bank), amount: U.money(p.amount) });
       case 'MORTGAGE_RELEASED': return t('blk.release', { ref: p.ref, dag: U.num(p.dag) });
+      case 'LD_TAX_PAID': return t('blk.tax', { no: p.receiptNo, holding: U.num(p.holding), amount: U.money(p.amount) });
+      case 'DIGITIZED_RECORD': return t('blk.digitized', { id: p.id, kind: t('dg.kind.' + p.kind), ref: p.ref, mouza: p.mouza });
       default: return b.type;
     }
   }
@@ -110,6 +112,10 @@ BS.views = (function () {
       area: U.area(d.area || 0), deed: d.priorDeed || '', bank: d.bank ? U.bank(d.bank) : '', ref: d.ref || ''
     });
   }
+
+  const LOCK = '<svg class="lock" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="1.5"/><path d="M7 9V6.5a3 3 0 016 0V9"/></svg>';
+  function hidden() { return '<span class="locked">' + LOCK + esc(t('mask.hidden')) + '</span>'; }
+  function ownersOf(dag) { const s = ctx().derived[dag]; return Object.keys(s.deedOwners).concat(Object.keys(s.recordOwners)); }
 
   function emptyNote(text) { return '<p class="empty">' + esc(text) + '</p>'; }
 
@@ -135,6 +141,12 @@ BS.views = (function () {
           '<figure class="map-card">' + mouzaMap() +
             '<figcaption>' + esc(t('map.caption', { mouza: U.L(D.location.mouza), jl: U.num(D.location.jl) })) + '</figcaption>' + legend() +
           '</figure>' +
+        '</section>' +
+        '<section class="tasks" aria-label="' + esc(t('home.tasks')) + '">' +
+          task('#/check', 'search', t('home.t1'), t('home.t1d')) +
+          task('#/verify', 'shield', t('home.t2'), t('home.t2d')) +
+          task(BS.auth.user() ? '#/' + BS.homeFor(BS.auth.role()) : '#/login', 'user', BS.auth.user() ? t('home.t3in') : t('home.t3'), t('home.t3d')) +
+          task('#/access', 'doc', t('home.t4'), t('home.t4d')) +
         '</section>' +
         '<section class="register-strip" aria-label="' + esc(t('home.statsAria')) + '">' +
           stat(c.integrity.ok ? t('home.statIntact') : t('home.statBroken'), U.num(c.state.chain.length) + ' ' + t('home.blocks'), c.integrity.ok ? 'ok' : 'bad') +
@@ -168,6 +180,9 @@ BS.views = (function () {
         '</section>';
     }
   };
+  function task(href, icon, title, desc) {
+    return '<a class="task" href="' + href + '"><span class="task-icon">' + BS.parts.ICONS[icon] + '</span><span class="task-text"><strong>' + esc(title) + '</strong><span>' + esc(desc) + '</span></span></a>';
+  }
   function stat(label, value, tone) {
     return '<div class="stat ' + (tone || '') + '"><span class="stat-value">' + esc(value) + '</span><span class="stat-label">' + esc(label) + '</span></div>';
   }
@@ -176,22 +191,111 @@ BS.views = (function () {
 
   const check = {
     render: function (q) {
-      const dag = q.dag;
+      const mouzaId = q.mouza || 'shaplapur';
+      const mz = D.mouzas.find(function (m) { return m.id === mouzaId; }) || D.mouzas[0];
+      const mode = q.kh !== undefined ? 'kh' : 'dag';
       const head = '<header class="page-head"><h1>' + esc(t('check.title')) + '</h1><p>' + esc(t('check.lede')) + '</p></header>';
-      const picker = '<form class="picker" id="check-form"><label for="dag-select">' + esc(t('check.pick')) + '</label>' +
-        '<select id="dag-select" name="dag"><option value="">' + esc(t('check.choose')) + '</option>' + plotOptions(dag) + '</select>' +
-        '<button class="btn primary" type="submit">' + esc(t('check.go')) + '</button></form>';
-      if (!dag || !E.plot(dag)) {
-        return head + picker + '<figure class="map-card wide">' + mouzaMap() + '<figcaption>' + esc(t('check.tapPlot')) + '</figcaption>' + legend() + '</figure>';
+      const form = '<form class="panel search-form" id="search-form">' +
+        '<div class="row3">' +
+          '<label class="field"><span>' + esc(t('kd.district')) + '</span><select id="sf-district"><option>' + esc(U.L(D.location.district)) + '</option></select></label>' +
+          '<label class="field"><span>' + esc(t('kd.upazila')) + '</span><select id="sf-upazila"><option>' + esc(U.L(D.location.upazila)) + '</option></select></label>' +
+          '<label class="field"><span>' + esc(t('kd.mouza')) + '</span><select id="sf-mouza" name="mouza">' + D.mouzas.map(function (m) {
+            return '<option value="' + m.id + '"' + (m.id === mz.id ? ' selected' : '') + '>' + esc(U.L(m.name)) + ' (' + esc(t('kd.jl')) + ' ' + U.num(m.jl) + ')</option>';
+          }).join('') + '</select></label>' +
+        '</div>' +
+        '<fieldset class="seg"><legend>' + esc(t('sf.by')) + '</legend>' +
+          '<label><input type="radio" name="mode" value="dag"' + (mode === 'dag' ? ' checked' : '') + '> ' + esc(t('sf.byDag')) + '</label>' +
+          '<label><input type="radio" name="mode" value="kh"' + (mode === 'kh' ? ' checked' : '') + '> ' + esc(t('sf.byKhatian')) + '</label>' +
+        '</fieldset>' +
+        '<div class="sf-row">' +
+          '<label class="field sf-survey"' + (mode === 'kh' ? '' : ' hidden') + '><span>' + esc(t('dg.survey')) + '</span><select id="sf-survey" name="sv"><option value="">' + esc(t('sf.anySurvey')) + '</option>' +
+            ['CS', 'SA', 'RS', 'BS'].map(function (sv) { return '<option value="' + sv + '"' + (q.sv === sv ? ' selected' : '') + '>' + esc(t('survey.' + sv)) + '</option>'; }).join('') + '</select></label>' +
+          '<label class="field sf-no"><span id="sf-no-label">' + esc(mode === 'kh' ? t('kd.khatianNo') : t('check.pick')) + '</span>' +
+            '<input id="sf-no" name="no" inputmode="numeric" autocomplete="off" value="' + esc(mode === 'kh' ? q.kh : (q.dag || q.dagq || '')) + '" placeholder="' + esc(mz.full ? (mode === 'kh' ? '230' : '101') : (mode === 'kh' ? '312' : '1022')) + '"></label>' +
+          '<button class="btn primary big" type="submit">' + esc(t('sf.search')) + '</button>' +
+        '</div></form>';
+
+      if (!mz.full) return head + form + digitizedResult(mz, q);
+
+      let dag = q.dag;
+      let khBlock = '';
+      if (mode === 'kh' && q.kh) {
+        const hits = [];
+        D.plots.forEach(function (p) { p.khatians.forEach(function (k) { if (k.no === String(q.kh) && (!q.sv || k.survey === q.sv)) hits.push({ p: p, k: k }); }); });
+        if (!hits.length) return head + form + '<p class="empty">' + esc(t('sf.noKhatian', { no: q.kh })) + '</p>';
+        dag = hits[0].p.dag;
+        khBlock = hits.map(function (h) { return BS.parts.khatianDoc(BS.parts.plotKhatian(h.p, h.k)); }).join('');
       }
-      return head + picker + plotReport(dag);
+      if (!dag || !E.plot(dag)) {
+        return head + form + (q.dag ? '<p class="empty">' + esc(t('sf.noDag', { no: q.dag })) + '</p>' : '') +
+          '<figure class="map-card wide">' + mouzaMap() + '<figcaption>' + esc(t('check.tapPlot')) + '</figcaption>' + legend() + '</figure>';
+      }
+      return head + form + (khBlock ? '<section class="panel"><h2>' + esc(t('sf.khatianFound')) + '</h2>' + khBlock + '</section>' : '') + plotReport(dag);
     },
-    mount: function () {
-      const f = document.getElementById('check-form');
-      f.addEventListener('submit', function (e) { e.preventDefault(); const v = f.dag.value; if (v) location.hash = '#/check?dag=' + v; });
-      f.dag.addEventListener('change', function () { if (f.dag.value) location.hash = '#/check?dag=' + f.dag.value; });
+    mount: function (q) {
+      const f = document.getElementById('search-form');
+      const sync = function () {
+        const kh = f.querySelector('input[name="mode"]:checked').value === 'kh';
+        f.querySelector('.sf-survey').hidden = !kh;
+        document.getElementById('sf-no-label').textContent = kh ? t('kd.khatianNo') : t('check.pick');
+      };
+      f.querySelectorAll('input[name="mode"]').forEach(function (r) { r.addEventListener('change', sync); });
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const mouza = f.mouza.value, no = U.toLatin(f.no.value.trim());
+        const kh = f.querySelector('input[name="mode"]:checked').value === 'kh';
+        const full = (D.mouzas.find(function (m) { return m.id === mouza; }) || {}).full;
+        let h = '#/check?mouza=' + mouza;
+        if (no) h += kh ? '&kh=' + encodeURIComponent(no) + (f.sv.value ? '&sv=' + f.sv.value : '') : (full ? '&dag=' : '&dagq=') + encodeURIComponent(no);
+        location.hash = h;
+      });
+      f.mouza.addEventListener('change', function () { location.hash = '#/check?mouza=' + f.mouza.value; });
+      document.querySelectorAll('[data-kh-tab]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('[data-kh-tab]').forEach(function (x) { x.setAttribute('aria-selected', x === btn ? 'true' : 'false'); });
+          document.querySelectorAll('[data-kh-panel]').forEach(function (pn) { pn.hidden = pn.dataset.khPanel !== btn.dataset.khTab; });
+        });
+      });
+      if (q.dag && E.plot(q.dag) && ['subreg', 'acland', 'bank', 'admin', 'survey'].indexOf(BS.auth.role()) !== -1) BS.auth.audit('view.report', 'dag ' + q.dag);
     }
   };
+
+  // Results for a mouza whose records exist only as digitized papers.
+  function digitizedResult(mz, q) {
+    const recs = (ctx().state.digitized || []).filter(function (r) { return r.mouzaId === mz.id; });
+    if (!recs.length) {
+      return '<section class="empty-state panel"><h2>' + esc(t('sf.notDigitized', { mouza: U.L(mz.name) })) + '</h2><p>' + esc(t('sf.notDigitizedD')) + '</p>' +
+        '<a class="btn primary" href="#/digitize">' + esc(t('sf.goDigitize')) + '</a></section>';
+    }
+    const kh = recs.filter(function (r) { return r.kind === 'khatian'; });
+    const deeds = recs.filter(function (r) { return r.kind === 'deed'; });
+    let show = [], dag = q.dagq;
+    if (q.kh) show = kh.filter(function (r) { return r.khatianNo === String(q.kh) && (!q.sv || r.survey === q.sv); });
+    else if (dag) show = kh.filter(function (r) { return r.rows.some(function (x) { return x.dag === String(dag); }); });
+    if (!q.kh && !dag) {
+      return '<section class="panel"><h2>' + esc(t('sf.digitizedList', { mouza: U.L(mz.name) })) + '</h2><ul class="who">' + recs.map(function (r) {
+        return '<li><a href="#/record?id=' + r.id + '">' + esc(r.kind === 'deed' ? t('rec.deedTitle') + ' ' + r.deedNo : t('kd.title', { survey: BS.parts.surveyName(r.survey) }) + ' ' + r.khatianNo) + '</a><span>' + esc(t('rec.digitized')) + ', ' + esc(r.id) + '</span></li>';
+      }).join('') + '</ul></section>';
+    }
+    if (!show.length) return '<p class="empty">' + esc(q.kh ? t('sf.noKhatian', { no: q.kh }) : t('sf.noDag', { no: dag })) + '</p>';
+    if (!dag && show[0].rows[0]) dag = show[0].rows[0].dag;
+    // Flow: older khatians -> newer, then deeds for this dag.
+    const forDag = kh.filter(function (r) { return r.rows.some(function (x) { return x.dag === String(dag); }); })
+      .sort(function (a, b) { return Number(a.year || 0) - Number(b.year || 0); });
+    const names = function (r) { return r.owners.map(function (o) { return o.name; }).join(', '); };
+    const steps = [];
+    for (let i = 1; i < forDag.length; i++) {
+      steps.push({ when: U.num(forDag[i].year || ''), from: names(forDag[i - 1]) + ' (' + BS.parts.surveyName(forDag[i - 1].survey) + ')', to: names(forDag[i]) + ' (' + BS.parts.surveyName(forDag[i].survey) + ')', label: t('flow.recordChange'), tone: '' });
+    }
+    deeds.filter(function (d) { return d.dag === String(dag); }).forEach(function (d) {
+      steps.push({ when: U.num(d.date), from: d.giver.name, to: d.taker.name, label: t('flow.deed', { no: U.num(d.deedNo), area: U.num(d.area) + ' ' + t('unit.acre') }), tone: 'ok' });
+    });
+    return '<section class="panel"><h2>' + esc(t('sf.khatianFound')) + '</h2>' + show.map(function (r) {
+      return BS.parts.khatianDoc(r, { badge: { tone: 'ok', text: t('rec.digitized') } }) + '<p><a href="#/record?id=' + r.id + '">' + esc(t('rec.proofLink', { id: r.id })) + '</a></p>';
+    }).join('') + '</section>' +
+      (steps.length ? '<section class="panel"><h2>' + esc(t('flow.title', { dag: U.num(dag) })) + '</h2>' + BS.parts.flow(steps) + '</section>' : '') +
+      '<p class="note">' + esc(t('sf.digitizedNote')) + '</p>';
+  }
 
   function scoreSeal(a) {
     const r = 54, c = 2 * Math.PI * r, off = c * (1 - a.score / 100);
@@ -201,21 +305,28 @@ BS.views = (function () {
       '</svg><div class="seal-text"><span class="seal-score">' + U.num(a.score) + '</span><span class="seal-of">/' + U.num(100) + '</span></div></div>';
   }
 
-  function factorText(f) {
+  function factorText(f, mask) {
+    mask = mask || { loan: true, kase: true };
     const x = f.extra || {};
     const vars = { ref: f.ref ? U.L(f.ref) || f.ref : '', count: U.num(Array.isArray(x) ? x.length : x) };
     if (f.key === 'acquisition') { vars.project = U.L(x.project); vars.stage = U.L(x.stage); }
-    if (f.key === 'case') { vars.court = U.L(x.court); }
-    if (f.key === 'mortgage') { vars.bank = U.bank(x.bank); vars.amount = U.money(x.amount); vars.ref = x.ref; }
+    if (f.key === 'case') { vars.court = U.L(x.court); if (!mask.kase) { vars.ref = t('reg.caseYes'); vars.court = t('mask.short'); } }
+    if (f.key === 'mortgage') { vars.bank = U.bank(x.bank); vars.amount = mask.loan ? U.money(x.amount) : t('mask.short'); vars.ref = x.ref; }
+    if (f.key === 'taxDue') { vars.amount = U.money(x.due); vars.years = U.num(x.dueYears); }
     return { title: t('risk.' + f.key), detail: t('risk.' + f.key + '.d', vars) };
   }
 
   function plotReport(dag) {
     const c = ctx(), p = E.plot(dag), s = c.derived[dag], a = c.assessments[dag];
     const ownersMatch = E.sameOwners(s.deedOwners, s.recordOwners);
+    const owners = ownersOf(dag);
+    const seeLoan = BS.auth.see('loanAmount', owners);
+    const seeCase = BS.auth.see('caseDetail', owners);
+    const seeTax = BS.auth.see('taxStatus', owners);
+    const seeId = BS.auth.see('ownerId', owners);
 
     const factors = a.factors.length ? '<ul class="factors">' + a.factors.map(function (f) {
-      const tx = factorText(f);
+      const tx = factorText(f, { loan: seeLoan, kase: seeCase });
       return '<li class="factor ' + f.sev + '"><span class="chk-icon">' + ICON[f.sev === 'danger' ? 'fail' : 'warn'] + '</span><div><strong>' + esc(tx.title) +
         '</strong><span>' + esc(tx.detail) + '</span></div><span class="pts">−' + U.num(f.points) + '</span></li>';
     }).join('') + '</ul>' : '<ul class="factors"><li class="factor pass"><span class="chk-icon">' + ICON.pass + '</span><div><strong>' + esc(t('risk.none')) + '</strong><span>' + esc(t('risk.none.d')) + '</span></div></li></ul>';
@@ -232,10 +343,10 @@ BS.views = (function () {
       ev.push({ d: b.payload.date, kind: 'mutation', text: t('tl.mutation', { no: b.payload.caseNo, to: U.person(b.payload.to) }) });
     });
     s.mortgages.forEach(function (m) {
-      ev.push({ d: m.block.payload.date, kind: 'mortgage', text: t('tl.mortgage', { bank: U.bank(m.block.payload.bank), amount: U.money(m.block.payload.amount) }) });
+      ev.push({ d: m.block.payload.date, kind: 'mortgage', text: t('tl.mortgage', { bank: U.bank(m.block.payload.bank), amount: seeLoan ? U.money(m.block.payload.amount) : t('mask.short') }) });
       if (m.released) ev.push({ d: m.released.payload.date, kind: 'mutation', text: t('tl.release', { ref: m.released.payload.ref }) });
     });
-    const cc = E.caseFor(dag); if (cc) ev.push({ d: cc.filed, kind: 'danger', text: t('tl.case', { no: U.L(cc.no), court: U.L(cc.court) }) });
+    const cc = E.caseFor(dag); if (cc) ev.push({ d: cc.filed, kind: 'danger', text: seeCase ? t('tl.case', { no: U.L(cc.no), court: U.L(cc.court) }) : t('tl.caseMasked') });
     const acq = E.acqFor(dag); if (acq) ev.push({ d: acq.date, kind: 'danger', text: t('tl.acq', { ref: U.L(acq.ref), project: U.L(acq.project) }) });
     c.state.alerts.filter(function (x) { return x.dag === dag; }).forEach(function (x) {
       ev.push({ d: x.time.slice(0, 10), kind: 'danger', text: t('tl.blocked') + ': ' + alertText(x) });
@@ -249,12 +360,26 @@ BS.views = (function () {
     }).join('') + '</ol>';
 
     const mortActive = s.mortgages.filter(function (m) { return m.active; });
+    const holdings = E.holdingsForDag(dag);
+    const taxText = holdings.map(function (h) {
+      const st = E.holdingStatus(h, c.state.chain);
+      return t('tax.short', { no: U.num(h.no) }) + ': ' + (st.exempt ? t('desk.exempt') : st.due ? t('desk.dueYears', { n: U.num(st.dueYears) }) + ' (' + U.money(st.due) + ')' : t('desk.upToDate'));
+    }).join('; ');
+    const taxDue = holdings.some(function (h) { return E.holdingStatus(h, c.state.chain).due > 0; });
     const regs = [
-      [t('reg.case'), cc ? U.L(cc.no) + ', ' + U.L(cc.court) : t('reg.none'), !!cc],
+      [t('reg.case'), cc ? (seeCase ? U.L(cc.no) + ', ' + U.L(cc.court) : t('reg.caseYes')) : t('reg.none'), !!cc, cc && !seeCase],
       [t('reg.khas'), E.khasFor(dag) ? U.L(E.khasFor(dag).ref) : t('reg.none'), !!E.khasFor(dag)],
       [t('reg.acq'), acq ? U.L(acq.ref) + ', ' + U.L(acq.stage) : t('reg.none'), !!acq],
-      [t('reg.mortgage'), mortActive.length ? U.bank(mortActive[0].block.payload.bank) + ', ' + U.money(mortActive[0].block.payload.amount) : t('reg.none'), mortActive.length > 0]
+      [t('reg.mortgage'), mortActive.length ? U.bank(mortActive[0].block.payload.bank) + (seeLoan ? ', ' + U.money(mortActive[0].block.payload.amount) : '') : t('reg.none'), mortActive.length > 0, mortActive.length && !seeLoan],
+      [t('reg.tax'), seeTax ? (taxText || t('reg.noHolding')) : '', taxDue && seeTax, !seeTax]
     ];
+    const latest = p.khatians[p.khatians.length - 1].survey;
+    const khTabs = '<div class="tabs" role="tablist" aria-label="' + esc(t('check.khatians')) + '">' + p.khatians.map(function (k) {
+      return '<button type="button" role="tab" data-kh-tab="' + k.survey + '" aria-selected="' + (k.survey === latest) + '">' + esc(t('survey.' + k.survey)) + ' ' + U.num(k.year) + '</button>';
+    }).join('') + '</div>' + p.khatians.map(function (k) {
+      return '<div data-kh-panel="' + k.survey + '"' + (k.survey === latest ? '' : ' hidden') + '>' + BS.parts.khatianDoc(BS.parts.plotKhatian(p, k), { compact: true }) + '</div>';
+    }).join('');
+    const ids = seeId ? '<dt>' + esc(t('check.ids')) + '</dt><dd>' + Object.keys(s.deedOwners).map(function (id) { return esc(U.person(id)) + ': <code>' + esc((D.persons[id] || {}).id || id) + '</code>'; }).join(', ') + '</dd>' : '';
 
     return '' +
       '<section class="report">' +
@@ -271,14 +396,19 @@ BS.views = (function () {
           '<div class="panel"><h3>' + esc(t('check.owner')) + '</h3>' +
             '<dl class="facts">' +
               '<dt>' + esc(t('check.byDeed')) + '</dt><dd>' + esc(U.owners(s.deedOwners)) + '</dd>' +
-              '<dt>' + esc(t('check.byRecord')) + '</dt><dd>' + esc(U.owners(s.recordOwners)) + '</dd>' +
+              '<dt>' + esc(t('check.byRecord')) + '</dt><dd>' + esc(U.owners(s.recordOwners)) + '</dd>' + ids +
             '</dl>' +
             '<p class="match ' + (ownersMatch ? 'ok' : 'bad') + '">' + esc(ownersMatch ? t('check.ownersMatch') : t('check.ownersDiffer')) + '</p>' +
             '<h3>' + esc(t('check.registers')) + '</h3>' +
             '<dl class="facts regs">' + regs.map(function (r) {
-              return '<dt>' + esc(r[0]) + '</dt><dd class="' + (r[2] ? 'bad' : 'ok') + '">' + esc(r[1]) + '</dd>';
+              return '<dt>' + esc(r[0]) + '</dt><dd class="' + (r[2] ? 'bad' : 'ok') + '">' + esc(r[1]) + (r[3] ? ' ' + hidden() : '') + '</dd>';
             }).join('') + '</dl>' +
+            (BS.auth.role() === 'public' ? '<p class="hint">' + esc(t('mask.why')) + ' <a href="#/access">' + esc(t('nav.access')) + '</a></p>' : '') +
           '</div>' +
+        '</div>' +
+        '<div class="report-grid">' +
+          '<div class="panel"><h3>' + esc(t('check.khatians')) + '</h3>' + khTabs + '</div>' +
+          '<div class="panel"><h3>' + esc(t('flow.title', { dag: U.num(dag) })) + '</h3>' + BS.parts.plotFlow(p, s) + '</div>' +
         '</div>' +
         '<div class="panel"><h3>' + esc(t('check.history')) + '</h3>' + timeline + '</div>' +
         '<p class="note">' + esc(t('check.note')) + '</p>' +
@@ -337,7 +467,7 @@ BS.views = (function () {
       '<dt>' + esc(t('deed.seller')) + '</dt><dd>' + esc(U.person(p.seller)) + '</dd>' +
       '<dt>' + esc(t('deed.buyer')) + '</dt><dd>' + esc(U.person(p.buyer)) + '</dd>' +
       '<dt>' + esc(t('deed.area')) + '</dt><dd>' + esc(U.area(p.area)) + '</dd>' +
-      '<dt>' + esc(t('deed.price')) + '</dt><dd>' + esc(U.money(p.price)) + '</dd>' +
+      '<dt>' + esc(t('deed.price')) + '</dt><dd>' + (BS.auth.see('dealPrice', [p.seller, p.buyer]) ? esc(U.money(p.price)) : hidden()) + '</dd>' +
       '<dt>' + esc(t('deed.date')) + '</dt><dd>' + U.date(p.date) + '</dd>' +
       '<dt>' + esc(t('deed.office')) + '</dt><dd>' + esc(U.L(D.offices[p.office]) || p.office) + '</dd>' +
       '</dl>';
@@ -521,6 +651,7 @@ BS.views = (function () {
           const type = ds ? 'DOUBLE_SALE' : kh ? 'KHAS_SALE' : 'BLOCKED_SALE';
           BS.store.addAlert({ time: new Date().toISOString(), type: type, dag: input.dag,
             detail: { seller: input.seller, buyer: input.buyer, area: Number(input.area), priorDeed: ds && ds.data.prior ? ds.data.prior.deedNo : '' } });
+          BS.auth.audit('sale.blocked', 'dag ' + input.dag);
           BS.app.refreshHeader();
           out.innerHTML = resultCard('bad', t('reg.blocked'), t('reg.blockedD'), checkList(res.checks));
           return;
@@ -534,6 +665,7 @@ BS.views = (function () {
           const today = new Date().toISOString().slice(0, 10);
           const payload = { deedNo: no, dag: input.dag, seller: input.seller, buyer: input.buyer, area: Number(input.area), price: Number(input.price), date: today, office: 'subreg', kind: 'sale' };
           const b = await BS.store.append('DEED_REGISTERED', payload);
+          BS.auth.audit('deed.register', no);
           // Automatic e-Mutation filing: registration and mutation stay linked.
           const caseNo = BS.store.nextNo('mutation', 'M');
           BS.store.state.mutationQueue.unshift({ caseNo: caseNo, deedNo: no, dag: input.dag, from: input.seller, to: input.buyer, area: Number(input.area), filed: today, status: 'pending' });
@@ -591,6 +723,7 @@ BS.views = (function () {
           const app = ctx().state.mutationQueue.find(function (x) { return x.caseNo === btn.dataset.approve; });
           await BS.store.append('MUTATION_APPROVED', { caseNo: app.caseNo, deedNo: app.deedNo, dag: app.dag, from: app.from, to: app.to, area: app.area, date: new Date().toISOString().slice(0, 10), office: 'acland' });
           app.status = 'approved'; BS.store.saveQueue();
+          BS.auth.audit('mutation.approve', app.caseNo);
           U.toast(t('mut.approved', { no: app.caseNo }), 'ok');
           await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
         });
@@ -599,6 +732,7 @@ BS.views = (function () {
         btn.addEventListener('click', async function () {
           const app = ctx().state.mutationQueue.find(function (x) { return x.caseNo === btn.dataset.reject; });
           app.status = 'rejected'; BS.store.saveQueue();
+          BS.auth.audit('mutation.reject', app.caseNo);
           U.toast(t('mut.rejected', { no: app.caseNo }), 'warn');
           await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
         });
@@ -623,7 +757,7 @@ BS.views = (function () {
         '<div class="form-layout"><form class="panel form" id="bank-form">' +
           field(t('common.dag'), '<select name="dag">' + plotOptions(dag) + '</select>') +
           field(t('bank.borrower'), '<select name="owner">' + personOptions(owner, dag) + '</select>') +
-          field(t('bank.bank'), '<select name="bank">' + Object.keys(D.banks).map(function (id) { return '<option value="' + id + '"' + ((bankDraft && bankDraft.bank) === id ? ' selected' : '') + '>' + esc(U.bank(id)) + '</option>'; }).join('') + '</select>') +
+          field(t('bank.bank'), '<select name="bank">' + Object.keys(D.banks).map(function (id) { return '<option value="' + id + '"' + (((bankDraft && bankDraft.bank) || (BS.auth.user() && BS.auth.user().bank)) === id ? ' selected' : '') + '>' + esc(U.bank(id)) + '</option>'; }).join('') + '</select>') +
           field(t('bank.amount') + ' (৳)', '<input name="amount" type="number" min="1000" step="1000" required value="' + esc((bankDraft && bankDraft.amount) || 1000000) + '">') +
           '<button class="btn primary" type="submit">' + esc(t('bank.run')) + '</button>' +
         '</form><div id="bank-result" class="result-slot" aria-live="polite">' + emptyNote(t('bank.empty')) + '</div></div>' +
@@ -657,6 +791,7 @@ BS.views = (function () {
         if (res.blocked) {
           const dm = res.checks.find(function (c) { return c.key === 'doubleMortgage'; });
           if (dm) {
+            BS.auth.audit('mortgage.blocked', input.dag);
             BS.store.addAlert({ time: new Date().toISOString(), type: 'DOUBLE_MORTGAGE', dag: input.dag, detail: { owner: input.owner, bank: input.bank, ref: dm.data.ref } });
             BS.app.refreshHeader();
           }
@@ -668,6 +803,7 @@ BS.views = (function () {
         document.getElementById('do-mortgage').addEventListener('click', async function () {
           this.disabled = true;
           const ref = BS.store.nextNo('mortgage', 'MTG');
+          BS.auth.audit('mortgage.create', input.dag);
           await BS.store.append('MORTGAGE_CREATED', { ref: ref, dag: input.dag, owner: input.owner, bank: input.bank, amount: Number(input.amount), area: res.held, date: new Date().toISOString().slice(0, 10) });
           bankDraft = null;
           U.toast(t('bank.done', { ref: ref }), 'ok');
@@ -677,6 +813,7 @@ BS.views = (function () {
       document.querySelectorAll('[data-release]').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           btn.disabled = true;
+          BS.auth.audit('mortgage.release', btn.dataset.release);
           await BS.store.append('MORTGAGE_RELEASED', { ref: btn.dataset.release, dag: btn.dataset.dag, date: new Date().toISOString().slice(0, 10) });
           U.toast(t('bank.released', { ref: btn.dataset.release }), 'ok');
           await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
@@ -747,6 +884,7 @@ BS.views = (function () {
             (!r.hashOk ? '<dt>' + esc(t('led.recomputed')) + '</dt><dd class="hash bad">' + r.recomputed + '</dd>' : '') + '</dl>' +
             '<p class="block-status">' + esc(why) + '</p></li>';
         }).join('') + '</ol>' +
+        (BS.auth.role() !== 'admin' ? '<aside class="panel lab"><h2>' + esc(t('lab.title')) + '</h2><p>' + esc(t('lab.adminOnly')) + '</p><a class="btn" href="#/login?next=ledger">' + esc(t('lab.loginAdmin')) + '</a></aside></div>' :
         '<aside class="panel lab"><h2>' + esc(t('lab.title')) + '</h2><p>' + esc(t('lab.lede')) + '</p>' +
           '<form id="lab-form" class="form">' +
             field(t('lab.block'), '<select name="index">' + editable.map(function (b) { return '<option value="' + b.index + '">#' + U.num(b.index) + ' ' + esc(t('type.' + b.type)) + '</option>'; }).join('') + '</select>') +
@@ -759,7 +897,7 @@ BS.views = (function () {
           '</form>' +
           '<p class="hint">' + esc(t('lab.why')) + '</p>' +
           '<button class="btn" id="reset-btn" type="button">' + esc(t('lab.reset')) + '</button>' +
-        '</aside></div>';
+        '</aside></div>');
     },
     mount: function () {
       const f = document.getElementById('lab-form');
@@ -790,6 +928,7 @@ BS.views = (function () {
         let val = f.value.value.trim();
         if (typeof b.payload[f.field.value] === 'number') val = Number(val);
         await BS.store.tamper(Number(f.index.value), f.field.value, val, f.mode.value);
+        BS.auth.audit('ledger.tamper', '#' + f.index.value);
         await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
         U.toast(t('lab.done'), 'bad');
         const first = document.querySelector('.block.bad');
@@ -804,6 +943,7 @@ BS.views = (function () {
           return;
         }
         await BS.store.reset();
+        BS.auth.audit('demo.reset', '');
         await BS.app.refresh(); BS.app.render(); BS.app.refreshHeader();
         U.toast(t('lab.resetDone'), 'ok');
       });
@@ -825,5 +965,6 @@ BS.views = (function () {
     }
   };
 
-  return { home: home, check: check, verify: verify, deed: deed, register: register, mutation: mutation, bank: bank, khatian: khatian, ledger: ledger, about: about };
+  return { _icon: function (k) { return ICON[k] || ICON.warn; }, _alertText: alertText, _hidden: hidden,
+    home: home, check: check, verify: verify, deed: deed, register: register, mutation: mutation, bank: bank, khatian: khatian, ledger: ledger, about: about };
 })();

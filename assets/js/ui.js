@@ -50,6 +50,7 @@ BS.ui = (function () {
   }
 
   function num(n) { return digits(n); }
+  function toLatin(s) { return String(s).replace(/[০-৯]/g, function (d) { return BN_DIGITS.indexOf(d); }); }
   function money(n) { return '৳ ' + digits(group(Number(n) || 0)); }
   function area(n) { return digits(Math.round(Number(n) * 100) / 100) + ' ' + t('unit.decimal'); }
 
@@ -105,6 +106,6 @@ BS.ui = (function () {
   return {
     t: t, L: L, num: num, money: money, area: area, date: date, dateTime: dateTime,
     person: person, bank: bank, owners: owners, esc: esc, shortHash: shortHash, qr: qr,
-    toast: toast, setLang: setLang, getLang: getLang, digits: digits, baseUrl: baseUrl
+    toast: toast, toLatin: toLatin, setLang: setLang, getLang: getLang, digits: digits, baseUrl: baseUrl
   };
 })();

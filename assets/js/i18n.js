@@ -125,8 +125,8 @@ BS.I18N = {
     'home.whoBank': 'একই জমি দুই ব্যাংকে বন্ধক রাখা বন্ধ',
     'home.whoCitizen': 'টাকা দেওয়ার আগে জমির ঝুঁকি স্কোর',
 
-    'check.title': 'কেনার আগে যাচাই',
-    'check.lede': 'দাগ বেছে নিন। ভূমিসূত্র দলিল, নামজারি, খতিয়ান, মামলা, খাস, অধিগ্রহণ ও বন্ধকের রেজিস্টার একসাথে মিলিয়ে একটি নিরাপত্তা স্কোর দেয়।',
+    'check.title': 'জমির তথ্য খুঁজুন ও যাচাই করুন',
+    'check.lede': 'মৌজা বেছে দাগ বা খতিয়ান নম্বর দিন। খতিয়ান, পুরো মালিকানার ইতিহাস আর নিরাপত্তা স্কোর দেখাবে। ভূমিসূত্র দলিল, নামজারি, খতিয়ান, মামলা, খাস, অধিগ্রহণ ও বন্ধকের রেজিস্টার একসাথে মিলিয়ে একটি নিরাপত্তা স্কোর দেয়।',
     'check.pick': 'দাগ নম্বর',
     'check.choose': 'দাগ বেছে নিন',
     'check.go': 'যাচাই করুন',
@@ -497,8 +497,8 @@ BS.I18N = {
     'home.whoBank': 'Stop the same land being mortgaged to two banks',
     'home.whoCitizen': 'A safety score before paying for land',
 
-    'check.title': 'Check before you buy',
-    'check.lede': 'Pick a plot. BhumiSutra reads deeds, mutations, khatians, court cases, khas, acquisition and mortgage registers together and gives one safety score.',
+    'check.title': 'Find and check land records',
+    'check.lede': 'Pick a mouza and enter a plot or khatian number to see the khatian, the full ownership history and a safety score. BhumiSutra reads deeds, mutations, khatians, court cases, khas, acquisition and mortgage registers together and gives one safety score.',
     'check.pick': 'Plot number',
     'check.choose': 'Choose a plot',
     'check.go': 'Check',
