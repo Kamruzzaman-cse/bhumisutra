@@ -81,6 +81,29 @@ BS.engine = (function () {
     return queue.filter(function (q) { return q.dag === dag && q.status === 'pending'; });
   }
 
+  /* ---------- Land Development Tax ---------- */
+
+  // Fiscal year starts 1 July. Returns the start year, e.g. 2026 for 2026-27.
+  function currentFY(now) {
+    const d = now || new Date();
+    return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+  }
+  function holdingStatus(h, chain) {
+    let paidTo = h.paidTo || 0;
+    chain.forEach(function (b) {
+      if (b.type === 'LD_TAX_PAID' && b.payload.holding === h.no) paidTo = Math.max(paidTo, Number(b.payload.paidTo));
+    });
+    if (h.exempt) return { exempt: true, dueYears: 0, due: 0, paidTo: paidTo };
+    const dueYears = Math.max(0, currentFY() - paidTo);
+    return { exempt: false, dueYears: dueYears, due: dueYears * h.annual, paidTo: paidTo };
+  }
+  function holdingFor(dag, person) {
+    return D.holdings.find(function (h) { return h.owner === person && h.dags.indexOf(dag) !== -1; });
+  }
+  function holdingsForDag(dag) {
+    return D.holdings.filter(function (h) { return h.dags.indexOf(dag) !== -1; });
+  }
+
   /*
    * Citizen safety score. Starts at 100; each risk takes points away.
    * 80+ = safe to proceed, 50–79 = check carefully, below 50 = do not buy.
@@ -101,6 +124,8 @@ BS.engine = (function () {
     if (!sameOwners(s.deedOwners, s.recordOwners)) f.push({ key: 'notMutated', points: 25, sev: 'warn' });
     const ki = khatianIssues(p);
     if (ki.length) f.push({ key: 'khatian', points: Math.min(25, ki.length * 10), sev: 'warn', extra: ki });
+    const taxDue = holdingsForDag(dag).map(function (h) { return holdingStatus(h, state.chain); }).filter(function (x) { return x.due > 0; });
+    if (taxDue.length) f.push({ key: 'taxDue', points: 5, sev: 'warn', extra: taxDue[0] });
     const attempts = state.alerts.filter(function (a) { return a.dag === dag; });
     if (attempts.length) f.push({ key: 'attempts', points: 10, sev: 'warn', extra: attempts.length });
     const lost = f.reduce(function (n, x) { return n + x.points; }, 0);
@@ -145,6 +170,15 @@ BS.engine = (function () {
     add('mortgage', mort.length ? 'fail' : 'pass', mort[0] && mort[0].block.payload);
     const ki = khatianIssues(plot(input.dag));
     add('khatian', ki.length ? 'warn' : 'pass', { count: ki.length });
+
+    const h = holdingFor(input.dag, input.seller);
+    if (!h) add('noHolding', 'warn');
+    else {
+      const ts = holdingStatus(h, state.chain);
+      if (ts.exempt) add('taxExempt', 'pass', { holding: h.no });
+      else if (ts.due > 0) add('taxDue', 'fail', { holding: h.no, amount: ts.due, years: ts.dueYears });
+      else add('taxPaid', 'pass', { holding: h.no });
+    }
 
     const blocked = checks.some(function (c) { return c.status === 'fail'; });
     return { checks: checks, blocked: blocked };
@@ -195,6 +229,6 @@ BS.engine = (function () {
   return {
     plot: plot, derive: derive, assess: assess, checkSale: checkSale, checkMortgage: checkMortgage,
     checkMutation: checkMutation, khatianIssues: khatianIssues, pendingMutation: pendingMutation,
-    sameOwners: sameOwners, caseFor: caseFor, khasFor: khasFor, acqFor: acqFor, diffDeed: diffDeed
+    sameOwners: sameOwners, currentFY: currentFY, holdingStatus: holdingStatus, holdingFor: holdingFor, holdingsForDag: holdingsForDag, caseFor: caseFor, khasFor: khasFor, acqFor: acqFor, diffDeed: diffDeed
   };
 })();

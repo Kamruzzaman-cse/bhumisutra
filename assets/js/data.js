@@ -18,21 +18,43 @@ BS.DATA = {
     district: { bn: 'ডেমো জেলা', en: 'Demo District' }
   },
 
-  // Fictional people. "DEMO-" IDs are not NID numbers.
+  // Fictional people. "DEMO-" IDs are not NID numbers. f = father/husband.
   persons: {
-    P01: { bn: 'আব্দুল করিম', en: 'Abdul Karim', id: 'DEMO-ID-0001' },
-    P02: { bn: 'রহিমা বেগম', en: 'Rahima Begum', id: 'DEMO-ID-0002' },
-    P03: { bn: 'জামাল হোসেন', en: 'Jamal Hossain', id: 'DEMO-ID-0003' },
-    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', id: 'DEMO-ID-0004' },
-    P05: { bn: 'মনির উদ্দিন', en: 'Monir Uddin', id: 'DEMO-ID-0005' },
-    P06: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam', id: 'DEMO-ID-0006' },
-    P07: { bn: 'রফিক মিয়া', en: 'Rafiq Mia', id: 'DEMO-ID-0007' },
-    P08: { bn: 'নাসিমা খাতুন', en: 'Nasima Khatun', id: 'DEMO-ID-0008' },
-    P09: { bn: 'হাবিবুর রহমান', en: 'Habibur Rahman', id: 'DEMO-ID-0009' },
-    P10: { bn: 'সুলতানা পারভীন', en: 'Sultana Parvin', id: 'DEMO-ID-0010' },
-    P11: { bn: 'কামাল সরকার', en: 'Kamal Sarkar', id: 'DEMO-ID-0011' },
+    P01: { bn: 'আব্দুল করিম', en: 'Abdul Karim', id: 'DEMO-ID-0001', f: { bn: 'মোসলেম উদ্দিন', en: 'Moslem Uddin' } },
+    P02: { bn: 'রহিমা বেগম', en: 'Rahima Begum', id: 'DEMO-ID-0002', f: { bn: 'আব্দুল করিম', en: 'Abdul Karim' }, rel: 'husband' },
+    P03: { bn: 'জামাল হোসেন', en: 'Jamal Hossain', id: 'DEMO-ID-0003', f: { bn: 'ইসমাইল হোসেন', en: 'Ismail Hossain' } },
+    P04: { bn: 'সেলিনা আক্তার', en: 'Selina Akter', id: 'DEMO-ID-0004', f: { bn: 'আব্দুল হামিদ', en: 'Abdul Hamid' } },
+    P05: { bn: 'মনির উদ্দিন', en: 'Monir Uddin', id: 'DEMO-ID-0005', f: { bn: 'কাশেম উদ্দিন', en: 'Kashem Uddin' } },
+    P06: { bn: 'ফারহানা ইসলাম', en: 'Farhana Islam', id: 'DEMO-ID-0006', f: { bn: 'নুরুল ইসলাম', en: 'Nurul Islam' } },
+    P07: { bn: 'রফিক মিয়া', en: 'Rafiq Mia', id: 'DEMO-ID-0007', f: { bn: 'আলতাফ মিয়া', en: 'Altaf Mia' } },
+    P08: { bn: 'নাসিমা খাতুন', en: 'Nasima Khatun', id: 'DEMO-ID-0008', f: { bn: 'নাসিরউদ্দিন', en: 'Nasiruddin' } },
+    P09: { bn: 'হাবিবুর রহমান', en: 'Habibur Rahman', id: 'DEMO-ID-0009', f: { bn: 'আজিজুর রহমান', en: 'Azizur Rahman' } },
+    P10: { bn: 'সুলতানা পারভীন', en: 'Sultana Parvin', id: 'DEMO-ID-0010', f: { bn: 'সুলতান আহমেদ', en: 'Sultan Ahmed' } },
+    P11: { bn: 'কামাল সরকার', en: 'Kamal Sarkar', id: 'DEMO-ID-0011', f: { bn: 'জালাল সরকার', en: 'Jalal Sarkar' } },
     GOV: { bn: 'বাংলাদেশ সরকার (খাস)', en: 'Government of Bangladesh (khas)', id: 'GOV-KHAS' }
   },
+
+  // Administrative units. Shaplapur has full records; Kashful starts empty
+  // and fills up when old papers are digitized (see Digitize screen).
+  mouzas: [
+    { id: 'shaplapur', name: { bn: 'শাপলাপুর', en: 'Shaplapur' }, jl: '117', full: true },
+    { id: 'kashful', name: { bn: 'কাশফুল', en: 'Kashful' }, jl: '118', full: false }
+  ],
+
+  /*
+   * Land Development Tax (ভূমি উন্নয়ন কর) holdings. Fiscal year runs July–June.
+   * Agricultural land up to 25 bigha per family is exempt, so those holdings
+   * show "exempt". paidTo = last fiscal year paid (start year), annual = BDT.
+   */
+  holdings: [
+    { no: '1001', owner: 'P04', dags: ['101'], exempt: true },
+    { no: '1007', owner: 'P05', dags: ['101'], exempt: true },
+    { no: '1002', owner: 'P06', dags: ['205'], annual: 480, paidTo: 2025 },
+    { no: '1003', owner: 'P07', dags: ['317'], exempt: true },
+    { no: '1004', owner: 'P08', dags: ['422'], annual: 960, paidTo: 2026 },
+    { no: '1005', owner: 'P09', dags: ['618'], exempt: true },
+    { no: '1006', owner: 'P10', dags: ['709'], annual: 600, paidTo: 2023 }
+  ],
 
   banks: {
     B1: { bn: 'ডেমো কমার্শিয়াল ব্যাংক', en: 'Demo Commercial Bank' },
@@ -184,6 +206,10 @@ BS.DATA = {
       payload: { deedNo: 'D-2019-0451', dag: '101', seller: 'P01', buyer: 'P04', area: 33, price: 1650000, date: '2019-03-14', office: 'subreg', kind: 'sale' } },
     { type: 'MUTATION_APPROVED', timestamp: '2019-05-02T06:00:00.000Z',
       payload: { caseNo: 'M-2019-0212', deedNo: 'D-2019-0451', dag: '101', from: 'P01', to: 'P04', area: 33, date: '2019-05-02', office: 'acland' } },
+    { type: 'DEED_REGISTERED', timestamp: '2023-08-21T05:15:00.000Z',
+      payload: { deedNo: 'D-2023-0088', dag: '101', seller: 'P04', buyer: 'P05', area: 5, price: 300000, date: '2023-08-21', office: 'subreg', kind: 'sale' } },
+    { type: 'MUTATION_APPROVED', timestamp: '2023-10-09T06:30:00.000Z',
+      payload: { caseNo: 'M-2023-0151', deedNo: 'D-2023-0088', dag: '101', from: 'P04', to: 'P05', area: 5, date: '2023-10-09', office: 'acland' } },
     { type: 'DEED_REGISTERED', timestamp: '2024-03-05T04:45:00.000Z',
       payload: { deedNo: 'D-2024-0137', dag: '205', seller: 'P03', buyer: 'P06', area: 20, price: 2400000, date: '2024-03-05', office: 'subreg', kind: 'sale' } },
     { type: 'MUTATION_APPROVED', timestamp: '2024-04-18T07:15:00.000Z',
