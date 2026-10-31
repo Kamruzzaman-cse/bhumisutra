@@ -218,9 +218,12 @@
     heir: { dag: '317', sellerNid: '0001000013', buyerNid: '0001000005', area: 50, price: 4500000 },
     locked: { dag: '101', sellerNid: '0001000005', buyerNid: '0001000002', area: 5, price: 450000 },
     khas: { dag: '530', sellerNid: '0001000011', buyerNid: '0001000005', area: 15, price: 1200000 },
-    mortgaged: { dag: '422', sellerNid: '0001000008', buyerNid: '0001000002', area: 40, price: 3200000 }
+    mortgaged: { dag: '422', sellerNid: '0001000008', buyerNid: '0001000002', area: 40, price: 3200000 },
+    // Passes every rule, but the AI risk score catches the pattern:
+    // price far below market + a buyer linked to earlier blocked attempts.
+    suspicious: { dag: '101', sellerNid: '0001000004', buyerNid: '0001000005', area: 15, price: 450000 }
   };
-  const PRESET_TONE = { clean: '', double: 'danger', fakeNid: 'danger', heir: 'danger', locked: 'danger', khas: 'danger', mortgaged: 'warn' };
+  const PRESET_TONE = { clean: '', double: 'danger', fakeNid: 'danger', heir: 'danger', locked: 'danger', khas: 'danger', mortgaged: 'warn', suspicious: 'warn' };
   let draft = PRESETS.clean;
 
   function nidLine(nid) {
@@ -295,9 +298,33 @@
       }
     }
     if (res.blocked) A.audit('sale.blocked', 'dag ' + form.dag);
-    sale = { input: input, form: form, res: res, step: res.blocked ? 'blocked' : 'checked' };
+    const risk = res.blocked ? null : BS.risk.score(input, ctx().derived, ctx().state);
+    if (risk && risk.level === 'high') A.audit('risk.flag', 'dag ' + form.dag + ' · ' + risk.score);
+    sale = { input: input, form: form, res: res, risk: risk, riskAck: false, step: res.blocked ? 'blocked' : 'checked' };
     BS.app.refreshHeader();
     BS.app.render();
+  }
+
+  // AI risk score panel (see risk.js): the number, the level, and why.
+  function riskPanel(r) {
+    const max = Math.max.apply(null, r.signals.map(function (x) { return x.contribution; }).concat([1]));
+    return '<section class="panel risk risk-' + r.level + '">' +
+      '<header class="risk-head"><div><p class="eyebrow">' + esc(t('risk.eyebrow')) + '</p><h3>' + esc(t('risk.title')) + '</h3></div>' +
+      '<div class="risk-score"><strong>' + U.num(r.score) + '</strong><span>/ ' + U.num(100) + '</span></div></header>' +
+      '<p class="risk-level">' + esc(t('risk.level.' + r.level)) + '</p>' +
+      (r.signals.length
+        ? '<ul class="risk-signals">' + r.signals.map(function (x) {
+            const d = Object.assign({}, x.data);
+            if (d.rate) d.rate = U.money(d.rate);
+            if (d.median) d.median = U.money(d.median);
+            if (d.country) d.country = U.L(d.country);
+            if (d.held !== undefined) d.held = U.area(d.held);
+            ['pct', 'days', 'n', 'times'].forEach(function (k) { if (d[k] !== undefined) d[k] = U.num(d[k]); });
+            return '<li><span class="risk-sig">' + esc(t('risk.sig.' + x.key, d)) + '</span>' +
+              '<span class="risk-bar" aria-hidden="true"><span style="width:' + Math.round(100 * x.contribution / max) + '%"></span></span></li>';
+          }).join('') + '</ul>'
+        : '<p class="hint">' + esc(t('risk.none')) + '</p>') +
+      '<p class="hint">' + esc(t('risk.model', { median: U.money(r.median) })) + '</p></section>';
   }
 
   function resultHtml() {
@@ -307,12 +334,17 @@
     const s = sale.input, pr = E.prefs(s.seller, ctx().state), sp = D.persons[s.seller];
     const warn = sale.res.checks.some(function (c) { return c.status === 'warn'; });
     let html = H.resultCard(warn ? 'warn' : 'ok', warn ? t('reg.passWarn') : t('reg.pass'), t('reg2.passD'), '<details class="raw"><summary>' + esc(t('reg2.showChecks', { n: U.num(sale.res.checks.length) })) + '</summary>' + list + '</details>');
+    if (sale.risk) html += riskPanel(sale.risk);
+    const needAck = sale.risk && sale.risk.level === 'high' && !sale.riskAck;
     // Step 2: owner consent
     html += '<section class="panel consent"><h3>' + esc(t('consent.title')) + '</h3>' +
       '<p>' + esc(t('consent.lede', { name: U.L(sp) })) + (pr.abroad ? ' <span class="badge warn">' + esc(t('consent.abroad', { country: U.L(pr.abroad) })) + '</span>' : '') + '</p>' +
       '<p class="hint">' + esc(t('consent.channel', { ch: t('ch.' + pr.consent) })) + '</p>';
     if (sale.step === 'checked') {
-      html += '<div class="actions"><button class="btn primary" type="button" data-consent="owner">' + esc(t('consent.ask')) + '</button></div>';
+      html += (sale.risk && sale.risk.level === 'high'
+        ? '<label class="risk-ack"><input type="checkbox" id="risk-ack"' + (sale.riskAck ? ' checked' : '') + '> <span>' + esc(t('risk.ack')) + '</span></label>'
+        : '') +
+        '<div class="actions"><button class="btn primary" type="button" data-consent="owner"' + (needAck ? ' disabled' : '') + '>' + esc(t('consent.ask')) + '</button></div>';
     } else if (sale.step === 'consent') {
       html += demoDevice(sale.ch, 'consent-code') +
         '<form id="consent-form" class="inline"><input id="consent-code" inputmode="numeric" maxlength="6" placeholder="••••••" aria-label="' + esc(t('login.code')) + '"><button class="btn primary" type="submit">' + esc(t('consent.verify')) + '</button></form><p id="consent-err" class="err" role="alert"></p>';
@@ -325,6 +357,12 @@
   }
 
   function mountResult() {
+    const ack = document.getElementById('risk-ack');
+    if (ack) ack.addEventListener('change', function () {
+      sale.riskAck = ack.checked;
+      if (ack.checked) A.audit('risk.ack', 'dag ' + sale.input.dag + ' · ' + sale.risk.score);
+      BS.app.render();
+    });
     document.querySelectorAll('[data-consent]').forEach(function (b) {
       b.addEventListener('click', function () {
         sale.ch = startChallenge(sale.input.seller);
@@ -348,7 +386,8 @@
       const id = BS.store.nextNo('notice', 'NT');
       const now = Date.now();
       const notified = whoToNotify(s);
-      const n = { id: id, input: s, created: new Date(now).toISOString(), ends: new Date(now + HOURS72).toISOString(), status: 'notice', objections: [], consentVia: sale.ch.channel, notified: notified };
+      const n = { id: id, input: s, created: new Date(now).toISOString(), ends: new Date(now + HOURS72).toISOString(), status: 'notice', objections: [], consentVia: sale.ch.channel, notified: notified,
+        risk: sale.risk ? { score: sale.risk.score, level: sale.risk.level, top: sale.risk.signals.slice(0, 2).map(function (x) { return x.key; }) } : null };
       st.pendingSales = st.pendingSales || [];
       st.pendingSales.unshift(n);
       await BS.store.append('NOTICE_PUBLISHED', { id: id, dag: s.dag, seller: s.seller, buyer: s.buyer, area: s.area, ends: n.ends, sellerNid: await S.nidHash(nidOf(s.seller)), consent: n.consentVia });
@@ -391,7 +430,8 @@
       const people = Object.keys((n.notified || {}).people || {}).map(function (id) { return pName(id) + ' (' + t('notify.' + n.notified.people[id]) + ')'; });
       return '<article class="panel notice ' + tone + '">' +
         '<header><div><h3>' + esc(n.id) + ' · ' + esc(t('common.dag')) + ' ' + U.num(s.dag) + '</h3><p>' + esc(t('notice.summary', { from: pName(s.seller), to: pName(s.buyer), area: U.area(s.area) })) + '</p></div>' +
-        '<span class="badge ' + (tone === 'ok' ? 'ok' : 'warn') + '">' + esc(t('notice.st.' + st)) + (st === 'running' ? ' · ' + esc(remaining(n)) : '') + '</span></header>' +
+        '<span class="badges">' + (asOfficer && n.risk ? '<span class="badge risk-' + n.risk.level + '">' + esc(t('risk.badge', { n: U.num(n.risk.score) })) + '</span>' : '') +
+        '<span class="badge ' + (tone === 'ok' ? 'ok' : 'warn') + '">' + esc(t('notice.st.' + st)) + (st === 'running' ? ' · ' + esc(remaining(n)) : '') + '</span></span></header>' +
         (asOfficer || mine ? '<p class="hint">' + esc(t('notice.notified', { list: people.join(', ') + (n.notified.banks.length ? ', ' + n.notified.banks.map(U.bank).join(', ') : '') })) + '</p>' : '') +
         (n.objections.length ? '<ul class="objections">' + n.objections.map(function (o, i) {
           return '<li class="' + (o.dismissed ? 'muted' : '') + '"><strong>' + esc(pName(o.by)) + '</strong>: ' + esc(t('obj.r.' + o.reason)) + (o.dismissed ? ' · ' + esc(t('obj.dismissed')) : '') +

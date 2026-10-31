@@ -24,7 +24,10 @@ window.BS = window.BS || {};
 BS.sync = (function () {
   const CHANNEL = 'bhumisutra-sync-v1';
   const HEARTBEAT_MS = 4000;
-  const STALE_MS = 9000;
+  // Chrome throttles timers in a tab hidden for 5+ minutes to about once a
+  // minute, so a background "office" tab may heartbeat only every ~60 s.
+  // Tabs that close normally say 'bye' and are removed at once.
+  const STALE_MS = 75000;
   const supported = typeof BroadcastChannel !== 'undefined';
   const tabId = Math.random().toString(36).slice(2, 9);
   const peers = {}; // tabId -> { office, seen }
@@ -32,6 +35,7 @@ BS.sync = (function () {
   let office = '';
   let lastChainLen = 0;
   let onChangeCb = null;
+  let onPeersCb = null;
   let heartbeatTimer = null;
 
   const OFFICE_LABEL = {
@@ -54,9 +58,8 @@ BS.sync = (function () {
   }
   function peerCount() { prunePeers(); return Object.keys(peers).length; }
 
-  // Called after every BS.store save — posts only when the chain actually
-  // grew or shrank is irrelevant here; any saved change is worth syncing
-  // (a new block, a dismissed objection, a land lock, a fraud alert).
+  // Called after every BS.store save. Any saved change is worth syncing:
+  // a new block, a dismissed objection, a land lock, a fraud alert.
   function broadcastChange(chainLen) {
     lastChainLen = chainLen;
     post({ kind: 'change' });
@@ -80,7 +83,10 @@ BS.sync = (function () {
     channel.onmessage = function (ev) {
       const m = ev.data;
       if (!m || m.tabId === tabId) return;
+      if (m.kind === 'bye') { delete peers[m.tabId]; if (onPeersCb) onPeersCb(); return; }
+      const isNew = !peers[m.tabId];
       peers[m.tabId] = { office: m.office, seen: Date.now() };
+      if (isNew && onPeersCb) onPeersCb();
       if (m.kind === 'hello') post({ kind: 'heartbeat' }); // introduce ourselves back
       if (m.kind === 'change' && onChangeCb) onChangeCb(m.office);
     };
@@ -89,7 +95,7 @@ BS.sync = (function () {
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) post({ kind: 'heartbeat' });
     });
-    window.addEventListener('beforeunload', function () { post({ kind: 'bye' }); });
+    window.addEventListener('pagehide', function () { post({ kind: 'bye' }); });
   }
 
   return {
@@ -98,6 +104,7 @@ BS.sync = (function () {
     setOffice: setOffice,
     broadcastChange: broadcastChange,
     peerCount: peerCount,
-    onChange: function (cb) { onChangeCb = cb; }
+    onChange: function (cb) { onChangeCb = cb; },
+    onPeers: function (cb) { onPeersCb = cb; }
   };
 })();

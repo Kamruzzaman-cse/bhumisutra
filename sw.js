@@ -1,6 +1,6 @@
 // BhumiSutra service worker — offline-first app shell cache.
 // Bump CACHE_VERSION whenever any cached file changes so clients pick up the update.
-const CACHE_VERSION = 'bhumisutra-v2';
+const CACHE_VERSION = 'bhumisutra-v3';
 
 const PRECACHE_URLS = [
   './',
@@ -37,14 +37,17 @@ const PRECACHE_URLS = [
   'assets/js/i18n.js',
   'assets/js/i18n2.js',
   'assets/js/i18n3.js',
+  'assets/js/i18n4.js',
   'assets/js/ledger.js',
   'assets/js/ocr.js',
+  'assets/js/risk.js',
   'assets/js/security.js',
   'assets/js/sync.js',
   'assets/js/ui.js',
   'assets/js/views.js',
   'assets/js/views2.js',
   'assets/js/views3.js',
+  'assets/js/views4.js',
   'assets/vendor/qrcode.js',
   'assets/vendor/tesseract/LICENSE-tesseract.js.md',
   'assets/vendor/tesseract/core/tesseract-core-lstm.wasm.js',

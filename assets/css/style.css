@@ -750,3 +750,74 @@ code { font-family: var(--font-mono); font-size: .88em; }
 }
 body.nav-open .topbar { z-index: 50; }
 #lab-value { color: var(--ink); font-size: 1rem; }
+
+/* ---------- final round: AI risk score ---------- */
+.risk { margin-top: 16px; border-left: 4px solid var(--green); }
+.risk.risk-medium { border-left-color: var(--amber); }
+.risk.risk-high { border-left-color: var(--red); background: var(--red-soft); }
+.risk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.risk-head h3 { margin: 2px 0 0; }
+.risk .eyebrow { margin: 0; font-size: .8rem; font-weight: 600; color: var(--muted); }
+.risk-score { text-align: right; white-space: nowrap; }
+.risk-score strong { font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; color: var(--green); }
+.risk-medium .risk-score strong { color: var(--amber); }
+.risk-high .risk-score strong { color: var(--red); }
+.risk-score span { color: var(--muted); margin-left: 4px; }
+.risk-level { font-weight: 600; margin: 8px 0 10px; }
+.risk-signals { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
+.risk-signals li { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 12px; align-items: center; }
+.risk-bar { height: 8px; background: var(--line-soft); border-radius: 999px; overflow: hidden; }
+.risk-bar span { display: block; height: 100%; background: var(--red); border-radius: 999px; }
+.risk-low .risk-bar span { background: var(--green); }
+.risk-medium .risk-bar span { background: var(--amber); }
+.risk-ack { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 10px 12px; border: 1px solid var(--red); border-radius: var(--r-sm); background: var(--red-soft); }
+.risk-ack input { margin-top: 4px; }
+.badges { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.badge.risk-low { background: var(--green-soft); color: var(--green-ink); }
+.badge.risk-medium { background: var(--amber-soft); color: var(--amber); }
+.badge.risk-high { background: var(--red-soft); color: var(--red); font-weight: 600; }
+@media (max-width: 760px) { .risk-signals li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+/* ---------- final round: USSD feature phone ---------- */
+.ussd-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
+.ussd-side { display: grid; gap: 16px; }
+.ussd-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.phone {
+  width: 280px; padding: 18px 18px 22px; border-radius: 36px 36px 44px 44px;
+  background: linear-gradient(170deg, #2B3A35, #151E1A); box-shadow: 0 20px 40px -18px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.phone-top { display: flex; justify-content: center; padding: 2px 0 12px; }
+.phone-speaker { width: 60px; height: 6px; border-radius: 999px; background: #0B110F; }
+.phone-screen {
+  height: 230px; border-radius: 8px; padding: 10px 12px; overflow: auto;
+  background: #C9D9A6; color: #1C2410; border: 3px solid #0B110F; box-shadow: inset 0 0 18px rgba(28, 36, 16, .25);
+  font-size: .92rem; line-height: 1.35;
+}
+.ussd-idle { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+.ussd-op { margin: 0; font-size: .75rem; font-weight: 600; opacity: .75; }
+.ussd-dial { margin: 0; font-family: var(--font-mono); font-size: 1.7rem; text-align: right; word-break: break-all; min-height: 2rem; }
+.ussd-hint { margin: 0; font-size: .78rem; text-align: center; opacity: .8; }
+.ussd-msg { display: flex; flex-direction: column; min-height: 100%; }
+.ussd-text { margin: 0; white-space: pre-line; flex: 1; }
+.ussd-input { margin: 6px 0 0; padding: 3px 6px; border: 1px solid #1C2410; background: rgba(255, 255, 255, .35); font-family: var(--font-mono); }
+.ussd-caret { animation: sync-pulse 1s steps(1) infinite; }
+.ussd-soft { display: flex; justify-content: space-between; margin: 8px 0 0; font-size: .7rem; opacity: .75; }
+.phone-nav { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0 10px; }
+.phone-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pk {
+  border: 0; border-radius: 12px; padding: 8px 0 6px; cursor: pointer; color: #E9F0EC;
+  background: #3A4B45; box-shadow: 0 2px 0 #0B110F; display: flex; flex-direction: column; align-items: center; line-height: 1.1;
+  font-family: var(--font-mono);
+}
+.pk b { font-size: 1.15rem; }
+.pk small { font-size: .6rem; opacity: .6; min-height: .7rem; }
+.pk:active { transform: translateY(2px); box-shadow: none; }
+.pk:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.pk.call { background: #2E8B57; font-size: 1.2rem; }
+.pk.end { background: #B3261E; font-size: 1.2rem; }
+.pk.end .pk-ico { display: inline-block; transform: rotate(135deg); }
+.pk.clr { font-size: 1.1rem; }
+@media (max-width: 760px) {
+  .ussd-layout { grid-template-columns: minmax(0, 1fr); }
+  .phone { margin: 0 auto; width: min(280px, 100%); }
+}

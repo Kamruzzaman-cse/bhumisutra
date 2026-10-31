@@ -650,6 +650,7 @@ BS.parts = (function () {
           }).join('') + '</ul>' : '<p class="empty">' + esc(t('home.noAlerts')) + '</p>') +
         '</section><section class="panel"><h2>' + esc(t('dash.recentAudit')) + '</h2>' + auditTable((st.audit || []).slice(0, 8)) +
           '<a href="#/audit">' + esc(t('dash.allAudit')) + '</a></section></div>' +
+        riskList() +
         watchlist() +
         '<section class="panel"><h2>' + esc(t('dash.links')) + '</h2><div class="tiles">' +
           [['register', 'stamp'], ['notices', 'doc'], ['mutation', 'doc'], ['taxdesk', 'coin'], ['bank', 'bank'], ['digitize', 'scan'], ['khatian', 'doc'], ['ledger', 'shield'], ['access', 'user']].map(function (x) {
@@ -657,6 +658,17 @@ BS.parts = (function () {
           }).join('') + '</div></section>';
     }
   };
+
+  // Sales the AI risk score flagged as high risk (see risk.js).
+  function riskList() {
+    const rows = (ctx().state.pendingSales || []).filter(function (n) { return n.risk && n.risk.level === 'high'; });
+    return '<section class="panel"><h2>' + esc(t('dash.riskTitle')) + '</h2>' +
+      (rows.length ? '<div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>' + esc(t('common.dag')) + '</th><th>' + esc(t('dash.riskParties')) + '</th><th class="num">' + esc(t('risk.badge', { n: '' }).trim()) + '</th></tr></thead><tbody>' +
+        rows.map(function (n) {
+          return '<tr><td>' + esc(n.id) + '</td><td>' + U.num(n.input.dag) + '</td><td>' + esc(U.person(n.input.seller)) + ' → ' + esc(U.person(n.input.buyer)) + '</td><td class="num"><span class="badge risk-high">' + U.num(n.risk.score) + '</span></td></tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<p class="empty">' + esc(t('dash.riskNone')) + '</p>') + '</section>';
+  }
 
   function watchlist() {
     const count = {};

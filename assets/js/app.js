@@ -13,7 +13,7 @@ BS.app = (function () {
 
   // [route, label key]; screens a role cannot open are hidden from its menu.
   const NAV = [
-    { group: 'nav.gCitizen', items: [['home', 'nav.home'], ['check', 'nav.check'], ['verify', 'nav.verify'], ['notices', 'nav.notices'], ['heirs', 'nav.heirs'], ['myland', 'nav.myland']] },
+    { group: 'nav.gCitizen', items: [['home', 'nav.home'], ['check', 'nav.check'], ['verify', 'nav.verify'], ['notices', 'nav.notices'], ['heirs', 'nav.heirs'], ['ussd', 'nav.ussd'], ['myland', 'nav.myland']] },
     { group: 'nav.gOffices', items: [['register', 'nav.register'], ['mutation', 'nav.mutation'], ['taxdesk', 'nav.taxdesk'], ['bank', 'nav.bank'], ['digitize', 'nav.digitize'], ['khatian', 'nav.khatian']] },
     { group: 'nav.gSystem', items: [['dashboard', 'nav.dashboard'], ['ledger', 'nav.ledger'], ['audit', 'nav.audit'], ['access', 'nav.access'], ['about', 'nav.about']] }
   ];
@@ -156,6 +156,7 @@ BS.app = (function () {
         U.toast(U.t('sync.changed', { office: fromOffice }), 'ok');
       });
     });
+    BS.sync.onPeers(refreshSyncPill); // update the pill the moment a tab joins or leaves
     refreshHeader();
     setInterval(refreshSyncPill, 5000); // keep the "N office tabs connected" count current even when idle
     render();

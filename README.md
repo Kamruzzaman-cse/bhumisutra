@@ -10,6 +10,8 @@ BhumiSutra is a working prototype for Bangladesh's land offices and citizens. It
 4. Protects **heirs' shares** and lets owners **lock** their land.
 5. Records every deed, mutation, mortgage and tax payment on a **SHA-256 hash-chained ledger**, with **digitally signed QR codes** any phone can check.
 6. **Digitizes old khatians and deeds** with Bangla OCR into the official format.
+7. Gives every sale an **explainable AI fraud-risk score**, catching sales that pass every rule but follow a fraud pattern.
+8. Works on **any basic phone through USSD (`*123#`)**, keeps **every office in live sync**, and runs **offline** as an installable app.
 
 The existing government systems keep running. BhumiSutra sits beside them as a verification layer.
 
@@ -111,6 +113,8 @@ When AC Land approves the mutation, the escrow is released to the seller. Every 
 | **Heir protection (faraiz)** | Deaths and succession are recorded on the ledger. An heir can sell only up to their own share. The **heir calculator** follows Islamic inheritance rules: fixed shares, residue 2:1, awl, radd. |
 | **72-hour notice + objections** | No silent sales. Anyone can see pending sales and object. |
 | **Escrow** | The buyer's money waits until mutation is approved, so a fraudulent sale can be stopped before the seller is paid. |
+| **AI fraud-risk score** | Every sale that passes the rule checks also gets a 0–100 risk score with the reasons behind it: price far below the mouza's market rate, a seller who bought the plot only weeks ago, a sale soon after the owner's death, a buyer linked to earlier blocked attempts, and more. A high score cannot be ignored: the officer must confirm in-person verification before asking for consent, and that confirmation goes into the audit log. |
+| **USSD `*123#` for basic phones** | Owners without a smartphone dial `*123#` to check a plot, verify a deed, see sale notices about their land and **object from the phone**, or **lock their land with a PIN**. The objection appears on the Sub-Registry notice board at once. |
 | **Plot QR signboard** | A printable signboard for the land itself. Anyone standing on the plot scans it with a phone to see the owner, khatian and safety score, with any case, mortgage or khas status shown as a red warning. |
 
 ### P1, P2, P4, P5 (linked)
@@ -179,6 +183,43 @@ Officers' actions are written to an **audit log**. Sessions end after **30 minut
 - **Inheritance:** a `SUCCESSION_RECORDED` block moves a deceased owner's land to the heirs in their faraiz shares. Sales by an heir are capped at their share.
 - **Data formats:** khatian records follow the official layout (areas in acres to 4 decimals, shares to 3 decimals). Deeds follow the sale-deed layout with a schedule (তফসিল). Real records can therefore be imported later without changing the data model.
 
+### AI fraud-risk score (explainable)
+
+The rule checks answer yes/no questions ("is this a double sale?"). Real fraud often passes all of them: the papers are in order, but the pattern is wrong. `assets/js/risk.js` scores that pattern:
+
+```
+z    = bias + Σ weight_i × strength_i      (strength_i between 0 and 1)
+risk = 100 × sigmoid(z)                    low < 30 ≤ medium < 60 ≤ high
+```
+
+| Signal | Fires when |
+|---|---|
+| Underpriced | price per decimal is far below the mouza median, computed live from every deed on the ledger |
+| Overpriced | price is over 2.5× the median (possible money laundering) |
+| Quick flip | the seller bought this plot less than 180 days ago |
+| Sale after death | an heir sells within 3 years of the owner's death |
+| Seller / buyer burst | many sales by one seller in 30 days, or many purchases by one buyer in 90 days |
+| Fraud network | the buyer or seller appears in earlier blocked attempts |
+| Seller abroad | expatriate owners are the most common impersonation target |
+
+Every signal that fires is shown with its share of the score, so the officer sees **why**. Try the **"Papers OK, but suspicious (AI)"** case in Safe registration: all 14 rule checks pass, and the risk score is 75/100.
+
+**Honest scope:** the weights are set by hand from known fraud patterns. In production the same features would train a model on the ledger's own history of blocked and objected-to sales, so the weights are learned rather than chosen.
+
+### USSD `*123#` for basic phones
+
+Open **বাটন ফোনে সেবা (*১২৩#)** in the menu. An on-screen feature phone (keyboard works too) runs the menus:
+
+```
+1. Land info      plot number → owners, safety score, top warning
+2. Verify deed    deed digits → genuine / not found
+3. My land        plots in the caller's name, lock status
+4. Notices        running sale notices on my land → object (4 reasons)
+5. Lock / unlock  PIN → writes a LAND_LOCK block to the ledger
+```
+
+In production this runs on the mobile operators' USSD gateway, as bKash and Nagad do. The SIM number identifies the caller, because every SIM in Bangladesh is biometrically registered against an NID.
+
 ### Live multi-office sync (see it work in 30 seconds)
 
 Open the live demo in **two browser tabs**. Log in as **Sub-Registrar** in one and **AC Land** in the other. Register a sale in the first tab — the second tab picks up the new ledger block **on its own**, with no reload, and shows a toast naming which office it came from. The header shows a live **"N office tabs connected"** pill the whole time.
@@ -195,16 +236,18 @@ assets/css/style.css          design system: light/dark, responsive, print
 assets/js/crypto.js           canonical JSON + SHA-256
 assets/js/security.js         ECDSA office signatures, signed QR links, NID masking and hashing
 assets/js/sync.js             live cross-tab sync (BroadcastChannel): simulates multiple offices sharing the ledger
+assets/js/risk.js             explainable AI fraud-risk score for a sale
 assets/js/data.js             FICTIONAL data: plots, khatians, people (fake NIDs), registers, tax holdings, succession
 assets/js/ledger.js           hash-chained ledger, verify(), Tamper Lab, saved state
 assets/js/auth.js             demo accounts, roles, access policy, audit log, session timeout
 assets/js/engine.js           rules: ownership replay, sale/mortgage/mutation checks, heirs, lock, tax, faraiz, safety score
 assets/js/ocr.js              Tesseract wrapper + parser into official khatian/deed fields + validation
-assets/js/i18n*.js            every word in Bangla and English (i18n3 = login, consent, notice, escrow, heirs)
+assets/js/i18n*.js            every word in Bangla and English (i18n3 = login, consent, notice, escrow, heirs; i18n4 = AI risk, USSD)
 assets/js/ui.js               Bangla digits, ৳, dates, QR, toasts
 assets/js/views.js            search, verify, certificate, registry, e-Mutation, bank, khatian matching, ledger
 assets/js/views2.js           tax, receipts, digitization, records, dashboard + watchlist, audit, access policy
 assets/js/views3.js           login (officer + citizen NID/OTP), safe registration, notice board, my land protection, heir calculator, signboard, QR scan
+assets/js/views4.js           USSD *123# feature-phone service
 assets/js/app.js              start-up, role-aware menu, route guard, hash router
 assets/vendor/                QR generator (MIT), Tesseract.js + core + ben/eng data (Apache-2.0)
 samples/                      fictional sample scans for the OCR demo
@@ -244,7 +287,9 @@ OCR uses a Web Worker, which browsers don't allow from `file://`, so use a local
 6. **Citizen Selina:** check My land → protection settings → **lock** the land. Then check the plot signboard and the heir calculator (dag 317).
 7. **Survey officer → Digitize:** run OCR on a sample khatian. The checks flag an area mismatch.
 8. **Admin → Tamper Lab:** edit an old block. The chain breaks and the header turns red. Show the watchlist and audit log.
-9. **Open a second tab, log in as a different office:** the ledger block you just registered already synced there live — see [Live multi-office sync](#live-multi-office-sync-see-it-work-in-30-seconds).
+9. **Sub-Registrar → "Papers OK, but suspicious (AI)":** every rule passes, but the AI risk score is high and explains why. Consent stays locked until the officer confirms in-person verification.
+10. **বাটন ফোনে সেবা (*১২৩#):** dial `*123#`, press 1 and plot 422 to see the court-case warning; as a co-owner, press 4 to object to a running sale from the phone.
+11. **Open a second tab, log in as a different office:** the ledger block you just registered already synced there live — see [Live multi-office sync](#live-multi-office-sync-see-it-work-in-30-seconds).
 
 ## Data used
 
@@ -287,7 +332,13 @@ Only **made-up data**:
 
 ## Changes after Round 1
 
-_Changes made for the Final Round will be listed here (rulebook Section 9)._
+| Change | Why | Where |
+|---|---|---|
+| **AI fraud-risk score** with reasons, a new demo case, a confirmation gate for high risk, a dashboard list and audit entries | Catch fraud that passes every rule but follows a known pattern | `assets/js/risk.js`, Safe registration, Admin dashboard |
+| **USSD `*123#` feature-phone service**: land info, deed check, my land, objections, land lock | Reach owners with no smartphone or internet | `assets/js/views4.js`, menu "বাটন ফোনে সেবা" |
+| **Live multi-office sync** across browser tabs, with a "N office tabs connected" header pill | Show every office seeing a change the moment it happens | `assets/js/sync.js` |
+| **Installable, fully offline app** (PWA) | Land offices with unreliable internet | `manifest.json`, `sw.js` |
+| **"The cost of doing nothing"** section with sourced figures | Show the size of the problem | this README |
 
 ## License
 
