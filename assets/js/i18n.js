@@ -11,6 +11,9 @@ BS.I18N = {
     'demo.strip': 'প্রোটোটাইপ: সব নাম, দাগ ও দলিল কাল্পনিক। কোনো আসল ব্যক্তি বা আসল ভূমি রেকর্ড ব্যবহার করা হয়নি।',
     'hdr.intact': 'লেজার অক্ষত, {n}টি ব্লক',
     'hdr.broken': 'লেজারে কারচুপি, ব্লক #{i}',
+    'hdr.syncOn': 'লাইভ সিঙ্ক: {n}টি অফিস ট্যাব সংযুক্ত',
+    'hdr.syncOff': 'লাইভ সিঙ্ক প্রস্তুত — আরেকটি অফিস ট্যাব খুলুন',
+    'sync.changed': '📡 {office} থেকে লেজার সিঙ্ক হলো',
     'err.crypto': 'এই ব্রাউজারে Web Crypto নেই। Chrome-এ HTTPS লিংক থেকে খুলুন।',
 
     'nav.gCitizen': 'নাগরিক',
@@ -383,6 +386,9 @@ BS.I18N = {
     'demo.strip': 'Prototype: every name, plot and deed here is fictional. No real person or real land record is used.',
     'hdr.intact': 'Ledger intact, {n} blocks',
     'hdr.broken': 'Ledger tampered at block #{i}',
+    'hdr.syncOn': 'Live sync: {n} office tabs connected',
+    'hdr.syncOff': 'Live sync ready — open another office tab',
+    'sync.changed': '📡 Ledger synced from {office}',
     'err.crypto': 'This browser has no Web Crypto. Open the HTTPS link in Chrome.',
 
     'nav.gCitizen': 'Citizens',

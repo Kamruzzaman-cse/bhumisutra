@@ -108,6 +108,9 @@ button, input, select { font: inherit; color: inherit; }
 .integrity.ok .dot { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
 .integrity.bad { border-color: var(--red); color: var(--red); background: var(--red-soft); }
 .integrity.bad .dot { background: var(--red); }
+.integrity.sync.ok { border-color: var(--focus); color: var(--focus); }
+.integrity.sync.ok .dot { background: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 20%, transparent); animation: sync-pulse 1.8s ease-in-out infinite; }
+@keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .lang-btn {
   border: 1px solid var(--line); background: transparent; padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer;
 }
@@ -647,6 +650,7 @@ code { font-family: var(--font-mono); font-size: .88em; }
   .topbar { padding: 8px 16px; gap: 8px; }
   .brand-text small { display: none; }
   .integrity { font-size: 0; padding: 8px; gap: 0; }
+  .integrity.sync { display: none; }
   main { padding: 20px 16px 48px; }
   .report-top { flex-direction: column; align-items: flex-start; gap: 14px; }
   .tl { grid-template-columns: minmax(0, 1fr); gap: 0; }

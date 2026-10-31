@@ -23,6 +23,15 @@ BS.store = (function () {
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: keep in memory */ }
+    if (BS.sync) BS.sync.broadcastChange(state.chain.length);
+  }
+
+  // Re-reads the shared state from localStorage into memory. Used when
+  // another browser tab (a different "office") changes it, so this tab's
+  // in-memory view catches up without a page reload (see sync.js).
+  function reload() {
+    const fresh = read();
+    if (fresh) state = fresh;
   }
 
   function blockBody(b) {
@@ -141,7 +150,7 @@ BS.store = (function () {
   function saveQueue() { save(); }
 
   return {
-    init: init, reset: reset, append: append, verify: verify, tamper: tamper,
+    init: init, reset: reset, append: append, verify: verify, tamper: tamper, reload: reload,
     nextNo: nextNo, addAlert: addAlert, saveQueue: saveQueue,
     khatianFingerprints: khatianFingerprints, khatianId: khatianId, computeHash: computeHash,
     get state() { return state; }

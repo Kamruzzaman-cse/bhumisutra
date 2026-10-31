@@ -67,6 +67,20 @@ Land disputes in Bangladesh usually start with:
 6. **Separate offices.** The Sub-Registry, AC Land, survey office, courts, DC office and banks keep separate records that do not talk to each other.
 7. **Owners find out too late.** They usually learn about a fraudulent sale only after the deed is registered.
 
+## The cost of doing nothing
+
+| Measure | Figure | Source |
+|---|---|---|
+| Of all litigation pending in Bangladesh's courts | **over 70%** is land-related — about 2 million cases | [The Daily Star](https://www.thedailystar.net/one-in-7-households-facing-land-disputes-36783) |
+| Households currently facing a land dispute | **1 in 7** (roughly 4 million households) | [The Daily Star](https://www.thedailystar.net/one-in-7-households-facing-land-disputes-36783) |
+| Average cost of pursuing one dispute | **~45%** of a household's annual income (60% of that going to lawyers) | [The Daily Star](https://www.thedailystar.net/one-in-7-households-facing-land-disputes-36783) |
+| Time to resolve a dispute | **~3 years on average**, some over 17 years; pending cases average **~8 years** | [The Daily Star](https://www.thedailystar.net/one-in-7-households-facing-land-disputes-36783) |
+| Households that called land services corrupt | **51%** — the 5th-worst sector nationally | [TIB National Household Survey 2023](https://ti-bangladesh.org/en/articles/story/7137) |
+| Households that paid a bribe for a land service | **32.3%** | [TIB National Household Survey 2023](https://ti-bangladesh.org/en/articles/story/7137) |
+| One active land-share fraud wave (Sept 2026) | **~40,000 buyers**, **≈Tk 12,000 crore**, 9,823 pending court cases | [The Business Standard](https://www.tbsnews.net/bangladesh/court/land-share-housing-fraud-40000-buyers-caught-tk12000cr-cases-1582101) |
+
+Every one of these numbers is a version of the same failure BhumiSutra targets directly: **a sale that should have been stopped at the registration desk instead turned into a years-long court case.** The register check, owner consent, 72-hour notice and escrow in Safe Registration (P3) are built to intercept exactly this moment — before the money moves and before a family spends 45% of a year's income and a decade in court trying to undo it.
+
 ## What BhumiSutra does
 
 ### P3 (core): catch fraud and double-selling before money changes hands
@@ -165,14 +179,22 @@ Officers' actions are written to an **audit log**. Sessions end after **30 minut
 - **Inheritance:** a `SUCCESSION_RECORDED` block moves a deceased owner's land to the heirs in their faraiz shares. Sales by an heir are capped at their share.
 - **Data formats:** khatian records follow the official layout (areas in acres to 4 decimals, shares to 3 decimals). Deeds follow the sale-deed layout with a schedule (তফসিল). Real records can therefore be imported later without changing the data model.
 
+### Live multi-office sync (see it work in 30 seconds)
+
+Open the live demo in **two browser tabs**. Log in as **Sub-Registrar** in one and **AC Land** in the other. Register a sale in the first tab — the second tab picks up the new ledger block **on its own**, with no reload, and shows a toast naming which office it came from. The header shows a live **"N office tabs connected"** pill the whole time.
+
+This is built on [`BroadcastChannel`](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel), a same-origin, cross-tab message bus every modern browser ships with. Every state change posts a ping; every other open tab hears it, re-reads the shared ledger and re-renders. It's a safe stand-in for the production plan's "copies at every office" — no backend, no account, and **no internet dependency**, so it can never fail on a venue's wifi during a live demo. See `assets/js/sync.js`.
+
 ### Files
 
 ```
 index.html                    app shell
+manifest.json, sw.js          PWA: installable, fully offline after first load
 assets/css/fonts.css          local fonts (offline, OFL)
 assets/css/style.css          design system: light/dark, responsive, print
 assets/js/crypto.js           canonical JSON + SHA-256
 assets/js/security.js         ECDSA office signatures, signed QR links, NID masking and hashing
+assets/js/sync.js             live cross-tab sync (BroadcastChannel): simulates multiple offices sharing the ledger
 assets/js/data.js             FICTIONAL data: plots, khatians, people (fake NIDs), registers, tax holdings, succession
 assets/js/ledger.js           hash-chained ledger, verify(), Tamper Lab, saved state
 assets/js/auth.js             demo accounts, roles, access policy, audit log, session timeout
@@ -222,6 +244,7 @@ OCR uses a Web Worker, which browsers don't allow from `file://`, so use a local
 6. **Citizen Selina:** check My land → protection settings → **lock** the land. Then check the plot signboard and the heir calculator (dag 317).
 7. **Survey officer → Digitize:** run OCR on a sample khatian. The checks flag an area mismatch.
 8. **Admin → Tamper Lab:** edit an old block. The chain breaks and the header turns red. Show the watchlist and audit log.
+9. **Open a second tab, log in as a different office:** the ledger block you just registered already synced there live — see [Live multi-office sync](#live-multi-office-sync-see-it-work-in-30-seconds).
 
 ## Data used
 
@@ -247,7 +270,7 @@ Only **made-up data**:
 
 | Prototype | Production plan |
 |---|---|
-| Ledger in one browser | Permissioned ledger with copies at Sub-Registry, AC Land, DLRS and DC offices; latest hash published daily |
+| Ledger in one browser, **live-synced across tabs** (see below) | Permissioned ledger with copies at Sub-Registry, AC Land, DLRS and DC offices; latest hash published daily |
 | Fictional registers | Authorised APIs to existing e-Mutation, e-Porcha, land development tax, court and bank systems; nothing is replaced |
 | Tesseract OCR | Same pipeline, plus a Bangla handwriting model trained on officer-corrected records; batch scanning at upazila record rooms |
 | Demo logins and NID list | Government SSO for officers; EC NID verification API + OTP for citizens; role-based access as in `POLICY` |

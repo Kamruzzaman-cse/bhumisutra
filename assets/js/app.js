@@ -84,6 +84,20 @@ BS.app = (function () {
     document.getElementById('size-down').setAttribute('aria-label', U.t('a11y.smaller'));
     document.getElementById('size-up').setAttribute('aria-label', U.t('a11y.bigger'));
     document.title = U.t('brand') + ' — ' + U.t('brand.tag');
+    refreshSyncPill();
+  }
+
+  // Live multi-office sync indicator (see sync.js): shows how many other
+  // tabs on this browser are open right now and sharing the ledger.
+  function refreshSyncPill() {
+    const pill = document.getElementById('sync-pill');
+    if (!pill) return;
+    BS.sync.setOffice(A.role());
+    if (!BS.sync.supported) { pill.style.display = 'none'; return; }
+    const n = BS.sync.peerCount();
+    pill.className = 'integrity sync' + (n > 0 ? ' ok' : '');
+    pill.innerHTML = '<span class="dot"></span><span class="pill-text">' +
+      U.esc(n > 0 ? U.t('hdr.syncOn', { n: U.num(n + 1) }) : U.t('hdr.syncOff')) + '</span>';
   }
 
   function logout() {
@@ -133,7 +147,17 @@ BS.app = (function () {
     }
     await BS.store.init();
     await refresh();
+    BS.sync.init(ctx.state.chain.length);
+    BS.sync.onChange(function (fromOffice) {
+      BS.store.reload();
+      refresh().then(function () {
+        refreshHeader();
+        render();
+        U.toast(U.t('sync.changed', { office: fromOffice }), 'ok');
+      });
+    });
     refreshHeader();
+    setInterval(refreshSyncPill, 5000); // keep the "N office tabs connected" count current even when idle
     render();
     window.addEventListener('hashchange', function () { render(); window.scrollTo(0, 0); document.getElementById('view').focus({ preventScroll: true }); });
     document.getElementById('lang-btn').addEventListener('click', function () {
