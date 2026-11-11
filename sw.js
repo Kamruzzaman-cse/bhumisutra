@@ -1,6 +1,6 @@
 // BhumiSutra service worker — offline-first app shell cache.
 // Bump CACHE_VERSION whenever any cached file changes so clients pick up the update.
-const CACHE_VERSION = 'bhumisutra-v3';
+const CACHE_VERSION = 'bhumisutra-v4';
 
 const PRECACHE_URLS = [
   './',
@@ -30,6 +30,7 @@ const PRECACHE_URLS = [
   'assets/fonts/tiro-bangla-bengali-400-normal.woff2',
   'assets/fonts/tiro-bangla-latin-400-normal.woff2',
   'assets/js/app.js',
+  'assets/js/assistant.js',
   'assets/js/auth.js',
   'assets/js/crypto.js',
   'assets/js/data.js',

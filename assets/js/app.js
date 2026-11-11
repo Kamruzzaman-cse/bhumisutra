@@ -85,6 +85,7 @@ BS.app = (function () {
     document.getElementById('size-up').setAttribute('aria-label', U.t('a11y.bigger'));
     document.title = U.t('brand') + ' — ' + U.t('brand.tag');
     refreshSyncPill();
+    if (BS.assistant) BS.assistant.relabel();
   }
 
   // Live multi-office sync indicator (see sync.js): shows how many other
@@ -156,6 +157,7 @@ BS.app = (function () {
         U.toast(U.t('sync.changed', { office: fromOffice }), 'ok');
       });
     });
+    BS.assistant.init(); // floating help chat on every page
     BS.sync.onPeers(refreshSyncPill); // update the pill the moment a tab joins or leaves
     refreshHeader();
     setInterval(refreshSyncPill, 5000); // keep the "N office tabs connected" count current even when idle
