@@ -14,6 +14,11 @@
  * safety score and warnings, and a deed number ("D-2019-0451") is checked
  * against the ledger.
  *
+ * Voice: a mic button lets people ask out loud, in Bangla or English, using
+ * the browser's speech recognition (Chrome sends audio to its speech
+ * service, so this one feature needs internet; the button hides itself
+ * offline). Spoken Bangla numbers such as "চারশো বাইশ" become 422.
+ *
  * Honest scope: this is keyword matching over a written knowledge base, not
  * a large language model. It never makes things up, runs fully offline and
  * cannot fail on stage. A production version could add an LLM behind a
@@ -186,8 +191,43 @@ BS.assistant = (function () {
 
   /* ---------- understanding ---------- */
 
+  // Bangla number words 1–99, as speech recognition writes them out.
+  const BN_NUM = ('এক দুই তিন চার পাঁচ ছয় সাত আট নয় দশ এগারো বারো তেরো চৌদ্দ পনেরো ষোলো সতেরো আঠারো উনিশ বিশ ' +
+    'একুশ বাইশ তেইশ চব্বিশ পঁচিশ ছাব্বিশ সাতাশ আটাশ উনত্রিশ ত্রিশ একত্রিশ বত্রিশ তেত্রিশ চৌত্রিশ পঁয়ত্রিশ ছত্রিশ সাঁইত্রিশ আটত্রিশ উনচল্লিশ চল্লিশ ' +
+    'একচল্লিশ বিয়াল্লিশ তেতাল্লিশ চুয়াল্লিশ পঁয়তাল্লিশ ছেচল্লিশ সাতচল্লিশ আটচল্লিশ উনপঞ্চাশ পঞ্চাশ একান্ন বাহান্ন তিপ্পান্ন চুয়ান্ন পঞ্চান্ন ছাপ্পান্ন সাতান্ন আটান্ন উনষাট ষাট ' +
+    'একষট্টি বাষট্টি তেষট্টি চৌষট্টি পঁয়ষট্টি ছেষট্টি সাতষট্টি আটষট্টি উনসত্তর সত্তর একাত্তর বাহাত্তর তিয়াত্তর চুয়াত্তর পঁচাত্তর ছিয়াত্তর সাতাত্তর আটাত্তর উনআশি আশি ' +
+    'একাশি বিরাশি তিরাশি চুরাশি পঁচাশি ছিয়াশি সাতাশি অষ্টআশি উননব্বই নব্বই একানব্বই বিরানব্বই তিরানব্বই চুরানব্বই পঁচানব্বই ছিয়ানব্বই সাতানব্বই আটানব্বই নিরানব্বই')
+    .split(' ').reduce(function (m, w, i) { m[w.normalize('NFC')] = i + 1; return m; }, {});
+  const BN_UNIT_ALT = { 'দু': 2, 'ছ': 6, 'ছয়': 6, 'ষোল': 16, 'এগার': 11, 'বার': 12, 'তের': 13, 'পনের': 15, 'সতের': 17, 'আঠার': 18 };
+  function bnWord(w) {
+    w = w.normalize('NFC').replace(/ঊ/g, 'উ');
+    return BN_NUM[w] || BN_UNIT_ALT[w] || 0;
+  }
+  // "চারশো বাইশ" → 422, "দাগ বাইশ" → দাগ 22. Words on their own are only
+  // turned into digits after দাগ / নম্বর / plot, so "এক" in a sentence stays.
+  function spokenNumbers(text) {
+    const toks = String(text).normalize('NFC').split(/\s+/);
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+      const tok = toks[i].replace(/[।?!,.]/g, '');
+      const hm = tok.match(/^(.+?)(শো|শ|শত)$/);
+      let hundreds = hm ? bnWord(hm[1]) : 0;
+      if (hundreds > 9) hundreds = 0;
+      if (!hundreds && bnWord(tok) > 0 && bnWord(tok) < 10 && /^(শো|শ|শত)$/.test(toks[i + 1] || '')) { hundreds = bnWord(tok); i++; }
+      if (hundreds) {
+        const next = bnWord((toks[i + 1] || '').replace(/[।?!,.]/g, ''));
+        if (next) { out.push(String(hundreds * 100 + next)); i++; } else out.push(String(hundreds * 100));
+        continue;
+      }
+      const prev = (out[out.length - 1] || '').toLowerCase();
+      if (bnWord(tok) && /^(দাগ|নম্বর|নং|plot|dag)$/.test(prev)) { out.push(String(bnWord(tok))); continue; }
+      out.push(toks[i]);
+    }
+    return out.join(' ');
+  }
+
   function norm(s) {
-    return ' ' + U.toLatin(String(s)).toLowerCase()
+    return ' ' + U.toLatin(String(s).normalize('NFC')).toLowerCase()
       .replace(/[।?!,.;:"'()\[\]{}…‘’“”]/g, ' ')
       .replace(/\s+/g, ' ').trim() + ' ';
   }
@@ -273,6 +313,7 @@ BS.assistant = (function () {
   }
 
   function answer(text) {
+    text = spokenNumbers(text);
     const deed = findDeed(text);
     if (deed) return deedAnswer(deed);
     const topic = bestTopic(text);
@@ -402,6 +443,7 @@ BS.assistant = (function () {
     root.classList.toggle('open', opened);
     root.querySelector('.as-launch').setAttribute('aria-expanded', String(opened));
     hideTeaser();
+    if (!opened && listening && rec) rec.abort();
     if (opened) {
       if (!started) start();
       setTimeout(function () { input.focus(); }, 50);
@@ -420,8 +462,11 @@ BS.assistant = (function () {
     root.querySelector('.as-sub').textContent = tr({ bn: 'সাধারণত সাথে সাথে উত্তর দেয়', en: 'Usually replies instantly' });
     root.querySelector('.as-launch').setAttribute('aria-label', tr({ bn: 'সহায়ক খুলুন', en: 'Open assistant' }));
     root.querySelector('.as-close').setAttribute('aria-label', tr({ bn: 'বন্ধ করুন', en: 'Close' }));
-    input.placeholder = tr({ bn: 'প্রশ্ন লিখে Enter চাপুন', en: 'Type your question and press Enter' });
+    input.placeholder = listening ? tr({ bn: 'শুনছি… বলুন', en: 'Listening… speak now' }) : tr({ bn: 'প্রশ্ন লিখে Enter চাপুন', en: 'Type your question and press Enter' });
     root.querySelector('.as-send').setAttribute('aria-label', tr({ bn: 'পাঠান', en: 'Send' }));
+    const mic = root.querySelector('.as-mic');
+    mic.setAttribute('aria-label', listening ? tr({ bn: 'শোনা থামান', en: 'Stop listening' }) : tr({ bn: 'মুখে বলে প্রশ্ন করুন', en: 'Ask by voice' }));
+    mic.title = mic.getAttribute('aria-label');
     root.querySelector('.as-note').textContent = tr({ bn: 'নিয়ম-ভিত্তিক সহায়ক · অফলাইনেও চলে · ডেমো তথ্য', en: 'Rule-based assistant · works offline · demo data' });
     const teaser = root.querySelector('.as-teaser-text');
     if (teaser) teaser.textContent = tr({ bn: 'সাহায্য লাগবে? আমাকে জিজ্ঞেস করুন।', en: 'Need help? Ask me.' });
@@ -429,7 +474,63 @@ BS.assistant = (function () {
 
   const ICON_CHAT = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor"/><circle cx="8.5" cy="9.5" r="1.2" fill="var(--green)"/><circle cx="12" cy="9.5" r="1.2" fill="var(--green)"/><circle cx="15.5" cy="9.5" r="1.2" fill="var(--green)"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const ICON_MIC = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
   const ICON_SEND = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></svg>';
+
+  /* ---------- voice ---------- */
+
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false;
+
+  function showMic() {
+    const mic = root.querySelector('.as-mic');
+    mic.hidden = !Recognition || !navigator.onLine;
+    if (mic.hidden && listening && rec) rec.abort();
+  }
+
+  function setListening(on) {
+    listening = on;
+    root.classList.toggle('listening', on);
+    root.querySelector('.as-mic').setAttribute('aria-pressed', String(on));
+    relabel();
+  }
+
+  function voiceError(code) {
+    const msg = code === 'not-allowed' || code === 'service-not-allowed'
+      ? { bn: 'মাইক্রোফোনের অনুমতি পাওয়া যায়নি। ব্রাউজারের ঠিকানার পাশের আইকনে মাইক্রোফোন "Allow" করুন।', en: 'Microphone permission was not given. Allow the microphone from the icon next to the address bar.' }
+      : code === 'network'
+      ? { bn: 'ভয়েসের জন্য ইন্টারনেট লাগে। লিখে প্রশ্ন করুন।', en: 'Voice needs internet. Please type your question.' }
+      : code === 'no-speech'
+      ? { bn: 'কিছু শুনতে পাইনি। মাইক চেপে আবার বলুন।', en: 'I didn\'t hear anything. Tap the mic and try again.' }
+      : null;
+    if (msg) reply({ text: tr(msg) });
+  }
+
+  function toggleVoice() {
+    if (!Recognition) return;
+    if (listening && rec) { rec.stop(); return; }
+    rec = new Recognition();
+    rec.lang = lang() === 'bn' ? 'bn-BD' : 'en-US';
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    let finalText = '';
+    rec.onresult = function (e) {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      input.value = (finalText + interim).trim();
+    };
+    rec.onerror = function (e) { voiceError(e.error); };
+    rec.onend = function () {
+      setListening(false);
+      const v = (finalText || input.value).trim();
+      input.value = '';
+      if (v) ask(v);
+    };
+    try { rec.start(); setListening(true); } catch (e) { setListening(false); }
+  }
 
   function init() {
     root = el('div', 'assistant no-print');
@@ -440,6 +541,7 @@ BS.assistant = (function () {
           '<button type="button" class="as-close">' + ICON_X + '</button></header>' +
         '<div class="as-log" aria-live="polite"></div>' +
         '<form class="as-form"><input class="as-input" type="text" autocomplete="off" maxlength="200">' +
+          '<button type="button" class="as-mic" hidden>' + ICON_MIC + '</button>' +
           '<button type="submit" class="as-send">' + ICON_SEND + '</button></form>' +
         '<p class="as-note"></p>' +
       '</section>' +
@@ -460,6 +562,10 @@ BS.assistant = (function () {
     }
 
     relabel();
+    showMic();
+    window.addEventListener('online', showMic);
+    window.addEventListener('offline', showMic);
+    root.querySelector('.as-mic').addEventListener('click', toggleVoice);
     root.querySelector('.as-launch').addEventListener('click', function () { toggle(); });
     root.querySelector('.as-close').addEventListener('click', function () { toggle(false); root.querySelector('.as-launch').focus(); });
     root.querySelector('.as-form').addEventListener('submit', function (e) {
@@ -474,5 +580,5 @@ BS.assistant = (function () {
     });
   }
 
-  return { init: init, relabel: relabel, open: function () { toggle(true); }, answer: answer };
+  return { init: init, relabel: relabel, open: function () { toggle(true); }, answer: answer, spokenNumbers: spokenNumbers };
 })();

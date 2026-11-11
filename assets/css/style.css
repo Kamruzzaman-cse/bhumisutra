@@ -889,3 +889,10 @@ body.nav-open .topbar { z-index: 50; }
   .as-teaser { max-width: calc(100vw - 110px); white-space: normal; }
 }
 @media print { .assistant { display: none !important; } }
+.as-mic { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); color: var(--green-ink); cursor: pointer; display: grid; place-items: center; flex: none; }
+.as-mic[hidden] { display: none; }
+.as-mic:hover { background: var(--green-soft); }
+.as-mic:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.assistant.listening .as-mic { background: var(--red); border-color: var(--red); color: #fff; animation: as-pulse 1.2s ease-out infinite; }
+@keyframes as-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 55%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
+@media (prefers-reduced-motion: reduce) { .assistant.listening .as-mic { animation: none; } }

@@ -210,6 +210,8 @@ Every signal that fires is shown with its share of the score, so the officer see
 
 A floating chat button, like a bank's customer-service chat. It greets the visitor by time of day, offers Bangla or English, shows quick-option buttons (check land, verify a deed, lock my land, heir shares, demo logins, a 3-minute tour), and answers typed questions in either language. Answers carry buttons that open the right screen.
 
+**Ask by voice:** tap the mic and speak in Bangla or English ("দাগ চারশো বাইশ কি নিরাপদ?"). Spoken Bangla numbers become digits (চারশো বাইশ → 422), so plot questions work by voice too. This uses the browser's speech recognition, which in Chrome needs internet; offline the mic button hides itself and everything else keeps working.
+
 It also answers from **live data**: type "দাগ ৪২২ নিরাপদ?" and it replies with that plot's current safety score, owners and warnings; type a deed number like `D-2019-0451` and it checks the ledger.
 
 **Honest scope:** this is keyword matching over a written knowledge base (`assets/js/assistant.js`), not a large language model. It never invents an answer, works offline and cannot fail on stage. A production version could put an LLM behind a server endpoint and use this same knowledge base as its grounding.
@@ -346,7 +348,7 @@ Only **made-up data**:
 | **AI fraud-risk score** with reasons, a new demo case, a confirmation gate for high risk, a dashboard list and audit entries | Catch fraud that passes every rule but follows a known pattern | `assets/js/risk.js`, Safe registration, Admin dashboard |
 | **USSD `*123#` feature-phone service**: land info, deed check, my land, objections, land lock | Reach owners with no smartphone or internet | `assets/js/views4.js`, menu "বাটন ফোনে সেবা" |
 | **Live multi-office sync** across browser tabs, with a "N office tabs connected" header pill | Show every office seeing a change the moment it happens | `assets/js/sync.js` |
-| **Help assistant chat** on every page: greeting, language choice, quick options, live plot and deed answers, links to the right screen | First-time visitors know where to start without a manual | `assets/js/assistant.js` |
+| **Help assistant chat** on every page: greeting, language choice, quick options, live plot and deed answers, links to the right screen, and **voice questions in Bangla** | First-time visitors know where to start without a manual | `assets/js/assistant.js` |
 | **Installable, fully offline app** (PWA) | Land offices with unreliable internet | `manifest.json`, `sw.js` |
 | **"The cost of doing nothing"** section with sourced figures | Show the size of the problem | this README |
 
